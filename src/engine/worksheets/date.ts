@@ -5,6 +5,7 @@
  * - CPT DBD → daysBetween(DT1, DT2, method).
  * - CPT DT1 / DT2 → addDays from the other date and DBD. Only allowed under ACT; under 360 CPT on a date
  *   leaves the state unchanged (no compute, no "*").
+ * - 2ND CLR WORK resets DT1, DT2 and DBD "without affecting the day-count method" (guidebook p. 63).
  * - A computed date is shown with its three-letter weekday, e.g. "9-5-2026 SAT". The weekday is tied to the
  *   variable's "computed" mark, so it disappears together with the "*" once an input changes.
  */
@@ -108,5 +109,5 @@ export const dateWorksheet: WorksheetDef = {
     return put(s, { ...d, dayCount: d.dayCount === "ACT" ? "360" : "ACT", marks: dropComputed(d.marks) });
   },
   status: (s, id) => (id === "dayCount" ? null : markOf(get(s).marks, id)),
-  clearWork: (s) => put(s, { ...DATE_DEFAULTS, marks: {} }),
+  clearWork: (s) => put(s, { ...DATE_DEFAULTS, dayCount: get(s).dayCount, marks: {} }),
 };

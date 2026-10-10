@@ -14,7 +14,8 @@
  *   1-V: n, x̄, Sx, σx, ΣX, ΣX² only.
  * - With no data every statistic shows 0 (n = 0) rather than an error; CPT on X' or Y' with no data is Error 1.
  *   Errors from finance.computeStats (e.g. Error 1 when all X are identical) show on the auto variables.
- * - 2ND CLR WORK in STAT clears the DATA points and resets the method to LIN (STAT_DEFAULTS).
+ * - 2ND CLR WORK in STAT resets the method to LIN and clears every value except X and Y (guidebook p. 55):
+ *   the DATA points are kept; X' and Y' go back to 0.
  */
 import { CalcError } from "../errors";
 import { computeStats, predictX, predictY, type DataPoint, type StatModel, type StatResult } from "../finance/stats";
@@ -199,5 +200,5 @@ export const statWorksheet: WorksheetDef = {
     if (isPrime(id)) return markOf(get(s).marks, id);
     return "computed";
   },
-  clearWork: (s) => put(s, { ...STAT_DEFAULTS, marks: {} }),
+  clearWork: (s) => put(s, { ...STAT_DEFAULTS, points: get(s).points, marks: {} }),
 };

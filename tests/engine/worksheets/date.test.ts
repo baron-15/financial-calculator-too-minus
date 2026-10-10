@@ -56,9 +56,10 @@ describe("DATE worksheet: behavior", () => {
     expect(lcd("2ND DATE ↑ SET ↑", from)).toBe("DBD= 559.00");
   });
 
-  it("CLR WORK restores the defaults (including ACT)", () => {
+  it("CLR WORK restores the defaults without affecting the day-count method (guidebook p. 63)", () => {
     const s = runScript("2ND DATE ↓ ↓ 100 ENTER ↓ SET CLR_WORK");
-    expect(s.ws.date).toEqual({ ...DATE_DEFAULTS, marks: {} });
+    expect(s.ws.date).toEqual({ ...DATE_DEFAULTS, dayCount: "360", marks: {} });
+    expect(runScript("2ND DATE ↓ ↓ 100 ENTER CLR_WORK").ws.date).toEqual({ ...DATE_DEFAULTS, marks: {} });
     expect(lcd("2ND DATE ↓ ↓ 100 ENTER CLR_WORK")).toBe("DT1= 12-31-1990");
   });
 });

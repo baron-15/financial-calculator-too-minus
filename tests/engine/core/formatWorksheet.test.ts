@@ -53,11 +53,11 @@ describe("FORMAT worksheet (2ND FORMAT)", () => {
     expect(display("2ND FORMAT ↓ 2ND SET 2ND QUIT .5 2ND HYP 2ND SIN")).toBe("0.52");
   });
   it("2ND SET switches the date format to EUR", () => {
-    expect(lcd("2ND FORMAT ↓ ↓ 2ND SET")).toBe("EUR 31-12-1990");
+    expect(lcd("2ND FORMAT ↓ ↓ 2ND SET")).toBe("Eur 31-12-1990"); // guidebook p. 4 prints "Eur"
     expect(runScript("2ND FORMAT ↓ ↓ 2ND SET").settings.dateFormat).toBe("EUR");
   });
   it("EUR separators format results and entries as 1.234,56", () => {
-    expect(lcd("2ND FORMAT ↓ ↓ ↓ 2ND SET")).toBe("EUR 1.000,00");
+    expect(lcd("2ND FORMAT ↓ ↓ ↓ 2ND SET")).toBe("Eur 1.000,00");
     expect(display("2ND FORMAT ↓ ↓ ↓ 2ND SET 2ND QUIT 1234.56 =")).toBe("1.234,56");
     expect(lcd("2ND FORMAT ↓ ↓ ↓ 2ND SET ↑ ↑ ↑")).toBe("DEC= 2,00");
   });

@@ -1,0 +1,541 @@
+/*
+ * BA II Plus device skin. Every size is in cqw of .ba-shell so the whole device scales with its
+ * column. Colors are fixed (not page tokens): the device looks the same in light and dark themes.
+ */
+
+.ba-shell {
+  container-type: inline-size;
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin-inline: auto;
+}
+
+.ba-device {
+  position: relative;
+  padding: 4.2cqw 4.6cqw 4.4cqw;
+  border-radius: 6.5cqw 6.5cqw 9cqw 9cqw / 5.5cqw 5.5cqw 8cqw 8cqw;
+  background:
+    radial-gradient(130% 55% at 50% -8%, rgba(255, 255, 255, 0.09), transparent 62%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035), transparent 7%, transparent 93%, rgba(0, 0, 0, 0.18)),
+    linear-gradient(180deg, #36383d 0%, #2a2c30 30%, #222326 70%, #1b1c1f 100%);
+  box-shadow:
+    inset 0 0.35cqw 0 rgba(255, 255, 255, 0.13),
+    inset 0 0 0 0.25cqw rgba(255, 255, 255, 0.035),
+    inset 0 -0.9cqw 1.6cqw rgba(0, 0, 0, 0.5),
+    0 0 0 0.3cqw #121315,
+    0 2px 3px rgba(0, 0, 0, 0.3),
+    0 18px 38px -10px rgba(0, 0, 0, 0.55);
+  color: #e9eaec;
+  font-family: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- Top: wordmark and solar-style strip ---- */
+
+.ba-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 7.5cqw;
+  padding: 0 1cqw;
+}
+
+.ba-wordmark {
+  font-size: 3.9cqw;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #dcdee2;
+  text-shadow: 0 -0.2cqw 0 rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+
+.ba-solar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35cqw;
+  width: 27cqw;
+  height: 5.2cqw;
+  padding: 0.5cqw;
+  border-radius: 1cqw;
+  background: #0d0d0f;
+  box-shadow:
+    inset 0 0.3cqw 0.5cqw rgba(0, 0, 0, 0.8),
+    0 0.2cqw 0 rgba(255, 255, 255, 0.07);
+}
+.ba-solar span {
+  border-radius: 0.3cqw;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 1.1cqw, rgba(0, 0, 0, 0.35) 1.1cqw 1.25cqw),
+    linear-gradient(160deg, #4a3836 0%, #33262a 45%, #281d21 100%);
+  box-shadow: inset 0 0.15cqw 0 rgba(255, 255, 255, 0.08);
+}
+
+/* ---- LCD ---- */
+
+.ba-bezel {
+  margin-top: 2.6cqw;
+  padding: 2.6cqw 2.8cqw;
+  border-radius: 3.2cqw;
+  background: linear-gradient(180deg, #111214, #191a1d 60%, #1d1e21);
+  box-shadow:
+    inset 0 0.4cqw 0.8cqw rgba(0, 0, 0, 0.85),
+    0 0.3cqw 0 rgba(255, 255, 255, 0.07);
+}
+
+.ba-lcd {
+  --ink: #1b2118;
+  position: relative;
+  height: 19.5cqw;
+  padding: 1.5cqw 2.4cqw 2cqw;
+  border-radius: 1.3cqw;
+  color: var(--ink);
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.04) 38%, transparent 60%),
+    linear-gradient(180deg, #c9cfba 0%, #bcc3ab 50%, #b0b79e 100%);
+  box-shadow:
+    inset 0 0.9cqw 1.8cqw rgba(0, 0, 0, 0.4),
+    inset 0 0 0 0.25cqw rgba(0, 0, 0, 0.42),
+    inset 0 -0.3cqw 0.4cqw rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ba-ann {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 3.2cqw;
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  font-size: 2.3cqw;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+.ba-ann-item {
+  opacity: 0.07;
+  transition: opacity 60ms linear;
+}
+.ba-ann-up,
+.ba-ann-down {
+  font-size: 2.9cqw;
+}
+
+.ba-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  min-width: 0;
+  white-space: nowrap;
+  text-shadow: 0.35cqw 0.4cqw 0.15cqw rgba(0, 0, 0, 0.13);
+}
+
+.ba-label {
+  flex: none;
+  display: inline-flex;
+  align-items: flex-end;
+  font-family: "DSEG14 Classic", ui-monospace, monospace;
+  line-height: 1;
+}
+.ba-eq {
+  position: relative;
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 0.06em;
+  color: transparent;
+  text-shadow: none;
+  opacity: 0.06;
+}
+.ba-eq::before,
+.ba-eq::after {
+  content: "";
+  position: absolute;
+  left: 0.08em;
+  right: 0.04em;
+  height: 0.1em;
+  background: var(--ink);
+  box-shadow: 0.06em 0.06em 0.03em rgba(0, 0, 0, 0.13);
+}
+.ba-eq::before {
+  top: 0.34em;
+}
+.ba-eq::after {
+  top: 0.56em;
+}
+.ba-label:empty,
+.ba-label.is-empty .ba-eq {
+  opacity: 0;
+}
+
+.ba-value {
+  margin-left: auto;
+  text-align: right;
+  line-height: 1;
+  font-family: "DSEG7 Classic", ui-monospace, monospace;
+}
+.ba-seg7 {
+  font-family: "DSEG7 Classic", ui-monospace, monospace;
+}
+.ba-seg14 {
+  font-family: "DSEG14 Classic", ui-monospace, monospace;
+}
+
+/* DSEG7 has no comma: draw it as a zero-width dot with a tail, where the period would sit. */
+.ba-comma {
+  position: relative;
+  display: inline-block;
+  width: 0;
+  height: 1em;
+}
+.ba-comma::before,
+.ba-comma::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+.ba-comma::before {
+  left: -0.064em;
+  bottom: 0;
+  width: 0.128em;
+  height: 0.128em;
+  border-radius: 50%;
+}
+.ba-comma::after {
+  left: -0.012em;
+  bottom: -0.13em;
+  width: 0.058em;
+  height: 0.2em;
+  border-radius: 0 0 0.03em 0.03em;
+  transform: skewX(-24deg);
+  transform-origin: top left;
+}
+.ba-blank {
+  display: inline-block;
+  width: 0.816em;
+}
+
+.ba-marks {
+  flex: none;
+  align-self: flex-end;
+  height: 8.4cqw;
+  width: 3.4cqw;
+  margin-left: 0.8cqw;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6cqw 0 0.2cqw;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-weight: 700;
+  line-height: 1;
+}
+.ba-mark {
+  opacity: 0.06;
+}
+.ba-star {
+  font-size: 4.4cqw;
+  line-height: 0.6;
+}
+.ba-tri {
+  font-size: 2.8cqw;
+}
+
+.ba-lcd .is-lit {
+  opacity: 0.92;
+}
+.ba-lcd.is-off .ba-ann-item,
+.ba-lcd.is-off .ba-eq,
+.ba-lcd.is-off .ba-mark {
+  opacity: 0;
+}
+
+/* ---- Keypad ---- */
+
+.ba-keypad {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  column-gap: 3.1cqw;
+  row-gap: 0.3cqw;
+  margin-top: 3.4cqw;
+}
+
+.ba-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ba-gold {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 3.6cqw;
+  padding-bottom: 0.45cqw;
+  font-size: 2.55cqw;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: #e6b94e;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.ba-key {
+  --k-face: linear-gradient(180deg, #3d3f44 0%, #303236 55%, #292b2e 100%);
+  --k-hi: rgba(255, 255, 255, 0.15);
+  --k-edge: #0c0d0e;
+  --k-ink: #f3f4f6;
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  min-height: 44px;
+  height: max(44px, 10.6cqw);
+  padding: 0.3cqw 0 1.1cqw;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  font: inherit;
+  color: inherit;
+}
+.ba-key--tall {
+  height: auto;
+}
+
+.ba-key-face {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.7cqw / 2.1cqw;
+  background: var(--k-face);
+  box-shadow:
+    inset 0 0.25cqw 0 var(--k-hi),
+    inset 0 -0.6cqw 0.7cqw rgba(0, 0, 0, 0.26),
+    0 0.75cqw 0 var(--k-edge),
+    0 1.1cqw 1.3cqw rgba(0, 0, 0, 0.5);
+  transition:
+    transform 45ms ease-out,
+    box-shadow 45ms ease-out,
+    filter 45ms ease-out;
+}
+
+.ba-key-legend {
+  font-size: 3.8cqw;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--k-ink);
+  white-space: nowrap;
+}
+.ba-key-legend sup {
+  font-size: 0.68em;
+  vertical-align: 0.45em;
+  line-height: 0;
+}
+.ba-key--long .ba-key-legend {
+  font-size: 2.75cqw;
+  letter-spacing: 0.03em;
+}
+
+.ba-key:active .ba-key-face {
+  transform: translateY(0.55cqw);
+  filter: brightness(0.9);
+  box-shadow:
+    inset 0 0.25cqw 0 var(--k-hi),
+    inset 0 -0.3cqw 0.5cqw rgba(0, 0, 0, 0.3),
+    0 0.2cqw 0 var(--k-edge),
+    0 0.4cqw 0.6cqw rgba(0, 0, 0, 0.45);
+}
+.ba-key:focus-visible .ba-key-face {
+  outline: 0.6cqw solid #ffd76a;
+  outline-offset: 0.5cqw;
+}
+@media (hover: hover) {
+  .ba-key:hover .ba-key-face {
+    filter: brightness(1.08);
+  }
+  .ba-key:hover:active .ba-key-face {
+    filter: brightness(0.9);
+  }
+}
+
+/* Key families (KeySpec.kind) */
+.ba-key--digit {
+  --k-face: linear-gradient(180deg, #d4d7dc 0%, #c2c6cc 50%, #b1b5bc 100%);
+  --k-hi: rgba(255, 255, 255, 0.75);
+  --k-edge: #686c73;
+  --k-ink: #15171a;
+}
+.ba-key--digit .ba-key-legend {
+  font-size: 4.3cqw;
+}
+.ba-key--digit.ba-key--long .ba-key-legend,
+.ba-key--digit[data-calc-key="PLUSMINUS"] .ba-key-legend {
+  font-size: 3.3cqw;
+}
+.ba-key--op {
+  --k-face: linear-gradient(180deg, #4b4e55 0%, #3d4046 55%, #35383d 100%);
+  --k-hi: rgba(255, 255, 255, 0.17);
+  --k-edge: #111214;
+}
+.ba-key--op .ba-key-legend {
+  font-size: 4.1cqw;
+}
+.ba-key--tvm {
+  --k-face: linear-gradient(180deg, #555962 0%, #464a52 55%, #3e4148 100%);
+  --k-hi: rgba(255, 255, 255, 0.2);
+  --k-edge: #15161a;
+}
+.ba-key--second {
+  --k-face: linear-gradient(180deg, #f4cd5f 0%, #e0b33f 55%, #cc9f2c 100%);
+  --k-hi: rgba(255, 255, 255, 0.6);
+  --k-edge: #7a5c13;
+  --k-ink: #2b1f04;
+}
+.ba-key--second[aria-pressed="true"] .ba-key-face {
+  filter: brightness(1.08) saturate(1.1);
+}
+
+/* Top row: smaller, rounder keys, as on the device */
+.ba-key--top {
+  padding-top: 1.6cqw;
+  padding-bottom: 1.5cqw;
+}
+.ba-key--top .ba-key-face {
+  border-radius: 2.6cqw;
+  --k-face: linear-gradient(180deg, #5b5f67 0%, #4b4f56 55%, #43464c 100%);
+  --k-hi: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    inset 0 0.25cqw 0 var(--k-hi),
+    inset 0 -0.5cqw 0.6cqw rgba(0, 0, 0, 0.25),
+    0 0.55cqw 0 #101113,
+    0 0.9cqw 1.1cqw rgba(0, 0, 0, 0.5);
+}
+.ba-key--top .ba-key-legend {
+  font-size: 2.7cqw;
+}
+.ba-key--top[data-calc-key="UP"] .ba-key-legend,
+.ba-key--top[data-calc-key="DOWN"] .ba-key-legend {
+  font-size: 3.6cqw;
+}
+.ba-key--onoff .ba-key-face {
+  --k-face: linear-gradient(180deg, #6b3b38 0%, #57302e 55%, #4b2826 100%);
+  --k-hi: rgba(255, 255, 255, 0.2);
+}
+.ba-key--onoff .ba-key-legend {
+  color: #f6ecea;
+  font-size: 2.45cqw;
+}
+
+.ba-chin {
+  height: 1.2cqw;
+}
+
+/* ---- Key tip bubble ---- */
+
+.ba-tip {
+  position: absolute;
+  z-index: 30;
+  padding: 10px 12px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  color: var(--page-fg);
+  box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.15);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 12.5px;
+  line-height: 1.4;
+  pointer-events: none;
+  animation: ba-tip-in 120ms ease-out;
+}
+.ba-tip-arrow {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  transform: rotate(45deg);
+}
+.ba-tip.is-above .ba-tip-arrow {
+  bottom: -6px;
+  border-top: 0;
+  border-left: 0;
+}
+.ba-tip.is-below .ba-tip-arrow {
+  top: -6px;
+  border-bottom: 0;
+  border-right: 0;
+}
+.ba-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.ba-tip-key {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #2b2d31;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ba-tip-key.is-gold {
+  background: #e2b54a;
+  color: #2a1f05;
+}
+.ba-tip-name {
+  font-weight: 600;
+}
+.ba-tip-does {
+  margin: 0;
+}
+.ba-tip-ex {
+  margin: 5px 0 0;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--page-fg) 7%, transparent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+.ba-tip-second {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-border);
+}
+.ba-tip-kbd {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@keyframes ba-tip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ba-key-face,
+  .ba-ann-item {
+    transition: none;
+  }
+  .ba-tip {
+    animation: none;
+  }
+}

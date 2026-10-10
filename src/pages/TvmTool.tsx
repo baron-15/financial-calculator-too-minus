@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { amortSchedule } from "../engine/finance/amort";
 import type { TvmVar } from "../engine/finance/tvm";
 import { updateSavedState } from "../engine/persist";
+import { round13 } from "../engine/finance/precision";
 import { ExplainView } from "../ui/explain/ExplainView";
 import { AmortTable } from "../ui/tools/AmortTable";
 import { formatFixed, formatFull } from "../ui/tools/numbers";
@@ -103,7 +104,8 @@ export function TvmToolPage() {
     setForm((f) => {
       // Keep a fresh result as an input, the way the calculator keeps the register after CPT.
       const values = { ...f.values };
-      if (outcome?.ok && !dirty) values[outcome.target] = formatFull(outcome.value).replace(/,/g, "");
+      // Use the full 13-digit result (not the 10-digit display) so chained solves don't drift.
+      if (outcome?.ok && !dirty) values[outcome.target] = String(round13(outcome.value));
       return { ...f, values, solveFor: target };
     });
     setErrors(({ [target]: _gone, ...rest }) => rest);

@@ -58,7 +58,24 @@ export async function sendWebResponse(res: ServerResponse, response: Response): 
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      if (!res.write(value)) await new Promise<void>((resolve) => res.once("drain", () => resolve()));
+      if (!res.write(value)) {
+        if (res.destroyed) break; // the client is already gone: "close" will not fire again
+        // Wait for the buffer to drain, but give up if the client disconnects or the socket errors.
+        const alive = await new Promise<boolean>((resolve) => {
+          const done = (ok: boolean) => () => {
+            res.off("drain", onDrain);
+            res.off("close", onGone);
+            res.off("error", onGone);
+            resolve(ok);
+          };
+          const onDrain = done(true);
+          const onGone = done(false);
+          res.once("drain", onDrain);
+          res.once("close", onGone);
+          res.once("error", onGone);
+        });
+        if (!alive) break;
+      }
     }
   } catch {
     /* client went away or the stream errored: nothing more to send */

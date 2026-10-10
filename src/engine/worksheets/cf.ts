@@ -20,7 +20,15 @@
  *   both; entering I invalidates only NPV.
  */
 import { CalcError } from "../errors";
-import { irr as irrOf, npv as npvOf, type CashFlowGroup, type CashFlowSeries } from "../finance/cashflow";
+import {
+  irr as irrOf,
+  MAX_CF_FREQ as MAX_FREQ,
+  MAX_CF_GROUPS,
+  MIN_CF_FREQ as MIN_FREQ,
+  npv as npvOf,
+  type CashFlowGroup,
+  type CashFlowSeries,
+} from "../finance/cashflow";
 import { round13 } from "../finance/precision";
 import type { CalcState } from "../state";
 import type { WorksheetDef, WsValue, WsVar } from "./types";
@@ -40,9 +48,8 @@ export interface CfData {
   cf0Entered?: boolean;
 }
 export const CF_DEFAULTS: CfData = { cf0: 0, groups: [], i: 0, npv: 0, irr: 0, npvValid: false, irrValid: false };
-export const MAX_CF_GROUPS = 24;
-export const MIN_FREQ = 0.5;
-export const MAX_FREQ = 9999;
+// Device limits live in the finance layer so the worksheet, tool page and validator agree.
+export { MAX_CF_GROUPS, MIN_CF_FREQ as MIN_FREQ, MAX_CF_FREQ as MAX_FREQ } from "../finance/cashflow";
 
 type CfRef = { kind: "cf0" } | { kind: "c" | "f"; /** 0-based group index */ j: number };
 

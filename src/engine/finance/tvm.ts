@@ -83,7 +83,8 @@ export function tvmResidualFV(t: TvmInput, i: number): number {
 
 function solveIy(t: TvmInput): number {
   checkPyCy(t.py, t.cy);
-  // Error 5 when FV, N×PMT and PV all have the same sign (zeros count as either sign).
+  // Error 5 unless FV, N×PMT and PV include at least one strictly positive and one strictly negative
+  // value (a zero counts as neither sign, so e.g. PV = FV = 0 has no rate that balances the equation).
   const vals = [t.fv, t.n * t.pmt, t.pv];
   if (!(vals.some((v) => v > 0) && vals.some((v) => v < 0))) throw new CalcError(5);
 

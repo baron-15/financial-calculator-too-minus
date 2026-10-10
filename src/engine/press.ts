@@ -18,14 +18,13 @@
 import { arithKey, clearCalc, evaluateAll } from "./arith";
 import { commitEntry, currentValue, entryKey, isEntryKey, setX } from "./entry";
 import { CalcError, isCalcError, type ErrorCode } from "./errors";
-import type { CalDate } from "./finance/daycount";
 import { round13 } from "./finance/precision";
 import { isOverflow } from "./format";
 import { resolveAction, type Action, type KeyId } from "./keys";
 import { memoryKey } from "./memory";
 import { initialState, VIEW_DEFAULTS, type CalcState } from "./state";
 import { clearTvm, tvmCompute, tvmStore, tvmValue, type TvmKey } from "./worksheets/tvm";
-import { currentWorksheet, openWorksheet, redisplayWorksheet, worksheetKey } from "./worksheets/runner";
+import { currentWorksheet, displayedNumber, openWorksheet, redisplayWorksheet, worksheetKey } from "./worksheets/runner";
 import type { WorksheetId } from "./worksheets/types";
 
 const OPENERS: Partial<Record<Action, WorksheetId>> = {
@@ -223,26 +222,6 @@ function syncX(s: CalcState): CalcState {
   if (s.mode.kind !== "ws" || !s.view.assigned || s.arith.entry !== null) return s;
   const n = displayedNumber(s);
   return n === null || Object.is(n, s.arith.x) ? s : { ...s, arith: { ...s.arith, x: n } };
-}
-
-/** The numeric value of the displayed worksheet variable (dates as keyed, e.g. 12.3190), else null. */
-function displayedNumber(s: CalcState): number | null {
-  try {
-    const ws = currentWorksheet(s);
-    if (!ws?.v) return null;
-    const v = ws.def.value(s, ws.v.id);
-    if (v.kind === "number") return v.value;
-    if (v.kind === "date") return encodeDate(v.date, s.settings.dateFormat);
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/** A date as it would be keyed: US MM.DDYY, EUR DD.MMYY. */
-function encodeDate(d: CalDate, format: "US" | "EUR"): number {
-  const yy = ((d.y % 100) + 100) % 100;
-  return round13(format === "US" ? d.m + d.d / 100 + yy / 10000 : d.d + d.m / 100 + yy / 10000);
 }
 
 function checkRange(s: CalcState): void {

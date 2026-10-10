@@ -5,10 +5,10 @@ import type { ExplainRequest } from "../explain/request";
 import { cashFlowInputs, lcdNumber } from "../explain/request";
 import { friendlyError } from "./errors";
 import { parseNumber } from "./numbers";
+import { MIN_CF_FREQ as FREQ_MIN, MAX_CF_FREQ as FREQ_MAX } from "../../engine/finance/cashflow";
 
 export const MAX_GROUPS = MAX_CF_GROUPS;
-export const FREQ_MIN = 0.5;
-export const FREQ_MAX = 9_999;
+export { MIN_CF_FREQ as FREQ_MIN, MAX_CF_FREQ as FREQ_MAX } from "../../engine/finance/cashflow";
 
 export interface CfRow {
   /** Stable React key; not the group number (rows can move). */

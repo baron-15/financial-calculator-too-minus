@@ -34,8 +34,11 @@ export interface WsVar {
 export type WsValue =
   | { kind: "number"; value: number }
   | { kind: "date"; date: CalDate }
-  /** Settings and day-of-week, e.g. "ACT", "360", "2/Y", "LIN", "SL", "MON" */
-  | { kind: "text"; text: string };
+  /**
+   * Settings and day-of-week, e.g. "ACT", "360", "2/Y", "LIN", "SL", "9-05-2026 SAT".
+   * `date` is set when the text shows a date (a computed DATE result), so it stays usable as a value.
+   */
+  | { kind: "text"; text: string; date?: CalDate };
 
 /**
  * A worksheet implementation. All functions are pure: (state, …) → new state.

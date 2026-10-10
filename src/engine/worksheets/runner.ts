@@ -4,10 +4,12 @@
  */
 import { CalcError } from "../errors";
 import { commitEntry, currentValue } from "../entry";
+import type { CalDate } from "../finance/daycount";
+import { round13 } from "../finance/precision";
 import type { Action } from "../keys";
 import type { CalcState } from "../state";
 import { WORKSHEETS } from "./registry";
-import type { WorksheetDef, WorksheetId, WsVar } from "./types";
+import type { WorksheetDef, WorksheetId, WsValue, WsVar } from "./types";
 
 export function openWorksheet(s: CalcState, id: WorksheetId): CalcState {
   const def = WORKSHEETS[id];
@@ -31,13 +33,36 @@ export function currentWorksheet(s: CalcState): { def: WorksheetDef; vars: WsVar
   return { def, vars, index, v: vars[index] };
 }
 
+/** A date as it would be keyed: US MM.DDYY, EUR DD.MMYY. */
+export function encodeDate(d: CalDate, format: "US" | "EUR"): number {
+  const yy = ((d.y % 100) + 100) % 100;
+  return round13(format === "US" ? d.m + d.d / 100 + yy / 10000 : d.d + d.m / 100 + yy / 10000);
+}
+
+/** The value a worksheet variable contributes as x: numbers as-is, dates as keyed; null for settings text. */
+export function wsValueNumber(s: CalcState, v: WsValue): number | null {
+  if (v.kind === "number") return v.value;
+  if (v.kind === "date") return encodeDate(v.date, s.settings.dateFormat);
+  return v.date ? encodeDate(v.date, s.settings.dateFormat) : null;
+}
+
+/** The numeric value of the displayed worksheet variable, or null (not in a worksheet, settings text). */
+export function displayedNumber(s: CalcState): number | null {
+  try {
+    const ws = currentWorksheet(s);
+    return ws?.v ? wsValueNumber(s, ws.def.value(s, ws.v.id)) : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Keep `arith.x` equal to the displayed numeric value, so ENTER, arithmetic and TVM keys pressed
- * with nothing typed act on what the LCD shows (e.g. `CF ↓ 3000 ENTER ↓ × 2 = ENTER` sets F01 = 2).
+ * Keep `arith.x` equal to the displayed value, so ENTER, arithmetic and TVM keys pressed with nothing
+ * typed act on what the LCD shows (e.g. `CF ↓ 3000 ENTER ↓ × 2 = ENTER` sets F01 = 2).
  */
 function syncX(s: CalcState, def: WorksheetDef, varId: string): CalcState {
-  const val = def.value(s, varId);
-  return val.kind === "number" ? { ...s, arith: { ...s.arith, x: val.value, entry: null } } : s;
+  const n = wsValueNumber(s, def.value(s, varId));
+  return n === null ? s : { ...s, arith: { ...s.arith, x: n, entry: null } };
 }
 
 /** In a worksheet, re-show the current variable's stored value (used after CE|C clears an error). */

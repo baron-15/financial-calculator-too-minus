@@ -91,10 +91,14 @@ const CLEAR_BOUNDARY = new Set<KeyId>(["CPT" /* QUIT */, "FV" /* CLR TVM */, "CE
  * Keystrokes since the last 2ND QUIT / CLR TVM / CLR WORK / RESET (exclusive), most recent last.
  * This is what the ExplainPanel contract asks for.
  */
-export function keysSinceLastClear(entries: readonly LogEntry[]): KeyId[] {
+export function entriesSinceLastClear(entries: readonly LogEntry[]): LogEntry[] {
   let start = 0;
   entries.forEach((e, i) => {
     if (e.second && CLEAR_BOUNDARY.has(e.key)) start = i + 1;
   });
-  return entries.slice(start).map((e) => e.key);
+  return entries.slice(start);
+}
+
+export function keysSinceLastClear(entries: readonly LogEntry[]): KeyId[] {
+  return entriesSinceLastClear(entries).map((e) => e.key);
 }

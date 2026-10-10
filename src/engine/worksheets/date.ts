@@ -57,7 +57,7 @@ export function computedDate(d: DateData): "dt1" | "dt2" | null {
 function dateValue(s: CalcState, date: CalDate, computed: boolean): WsValue {
   if (!computed) return { kind: "date", date };
   try {
-    return { kind: "text", text: `${formatDate(date, s.settings.dateFormat)} ${dayOfWeek(date)}` };
+    return { kind: "text", text: `${formatDate(date, s.settings.dateFormat)} ${dayOfWeek(date)}`, date };
   } catch {
     return { kind: "date", date }; // value() must never throw; fall back to the plain date
   }

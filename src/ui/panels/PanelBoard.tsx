@@ -3,7 +3,7 @@
  * switching to the matching panel when a worksheet opens.
  */
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import type { CalcState, KeyId } from "../../engine";
+import type { CalcState } from "../../engine";
 import type { LogEntry } from "../../hooks/calculatorReducer";
 import { ExplainPanel } from "../explain/ExplainPanel";
 import { activePanelId, activeVarId, hasDedicatedPanel, type PanelId } from "./activePanel";
@@ -21,7 +21,7 @@ export interface PanelBoardProps {
   state: CalcState;
   log: LogEntry[];
   /** Keystrokes for the explainer (since the last QUIT / CLR) */
-  explainKeys: KeyId[];
+  explainKeys: readonly LogEntry[];
   onClearTape: () => void;
 }
 

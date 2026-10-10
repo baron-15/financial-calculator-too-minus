@@ -2,7 +2,9 @@
  * Build the /api/explain request from calculator state. Pure: no React, no DOM, no network.
  * Returns null when there is nothing computed to explain (the LCD shows no "*").
  */
-import { KEY_BY_ID, renderLcd, type CalcState, type KeyId, type Lcd } from "../../engine";
+import { renderLcd, type CalcState, type Lcd } from "../../engine";
+import type { LogEntry } from "../../hooks/calculatorReducer";
+import { tokenizeTape } from "../panels/tape";
 import type { CashFlowGroup } from "../../engine/finance/cashflow";
 import type { CalDate } from "../../engine/finance/daycount";
 import { formatNumber } from "../../engine/format";
@@ -13,7 +15,6 @@ import { LIMITS, type ExplainContext, type ExplainRequest, type ExplainValue } f
 export type { ExplainRequest } from "../../../api/_lib/protocol";
 
 const TVM_LABELS = new Set(["N", "I/Y", "PV", "PMT", "FV"]);
-const NUMBER_KEYS = new Set<KeyId>(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "DOT"]);
 
 /** Registers can only be finite numbers on the device; anything else is sent as text so validation never fails. */
 const num = (x: number): ExplainValue => (Number.isFinite(x) ? x : String(x));
@@ -51,39 +52,15 @@ function dateText(d: CalDate, format: "US" | "EUR"): string {
 /**
  * Keystrokes in calculator notation: digits are merged into numbers and 2ND combinations are named by
  * their printed function, e.g. ["2ND CLR TVM", "10", "N", "5", "I/Y", "100", "+|−", "PV", "CPT", "FV"].
- * Only the most recent LIMITS.keystrokes entries are kept.
+ * Uses the keystroke tape's tokenizer, so a 2ND the engine ignored (e.g. while "Error n" showed) is
+ * not applied to the next key. Only the most recent LIMITS.keystrokes entries are kept.
  */
-export function formatKeystrokes(keys: readonly KeyId[]): string[] {
-  const out: string[] = [];
-  let number = "";
-  let second = false;
-  const flush = () => {
-    if (number) out.push(number.slice(0, LIMITS.keystrokeLength));
-    number = "";
-  };
-  for (const k of keys) {
-    if (k === "2ND") {
-      second = !second;
-      continue;
-    }
-    const spec = KEY_BY_ID[k];
-    if (second) {
-      second = false;
-      if (spec?.second) {
-        flush();
-        out.push(`2ND ${spec.second.label}`);
-        continue;
-      }
-    }
-    if (NUMBER_KEYS.has(k)) {
-      number += k === "DOT" ? "." : k;
-      continue;
-    }
-    flush();
-    out.push(spec?.label ?? k);
-  }
-  flush();
-  return out.slice(-LIMITS.keystrokes);
+export function formatKeystrokes(entries: readonly LogEntry[]): string[] {
+  return tokenizeTape(entries)
+    .flat()
+    .filter((t) => t.kind !== "pending")
+    .map((t) => (t.kind === "second" ? `2ND ${t.text}` : t.text).slice(0, LIMITS.keystrokeLength))
+    .slice(-LIMITS.keystrokes);
 }
 
 function worksheetInputs(s: CalcState, id: string): { context: ExplainContext; inputs: Record<string, ExplainValue> } | null {
@@ -182,7 +159,7 @@ export function explainSettings(s: CalcState): Record<string, ExplainValue> {
   };
 }
 
-export function buildExplainRequest(state: CalcState, keystrokes: readonly KeyId[] = []): ExplainRequest | null {
+export function buildExplainRequest(state: CalcState, keystrokes: readonly LogEntry[] = []): ExplainRequest | null {
   if (!state.on || state.view.error !== null) return null;
   const lcd = renderLcd(state);
   if (!lcd.ann.computed || !lcd.value) return null;
@@ -190,7 +167,7 @@ export function buildExplainRequest(state: CalcState, keystrokes: readonly KeyId
 }
 
 /** The request for a computed LCD reading (exported for tests; buildExplainRequest gates on "*" first). */
-export function requestForLcd(state: CalcState, lcd: Pick<Lcd, "label" | "value">, keystrokes: readonly KeyId[] = []): ExplainRequest | null {
+export function requestForLcd(state: CalcState, lcd: Pick<Lcd, "label" | "value">, keystrokes: readonly LogEntry[] = []): ExplainRequest | null {
   let picked: { context: ExplainContext; inputs: Record<string, ExplainValue> } | null = null;
   if (state.mode.kind === "calc") {
     if (TVM_LABELS.has(state.view.label)) picked = { context: "TVM", inputs: tvmInputs(state.ws.tvm) };

@@ -3,6 +3,11 @@ import { initialState, parseScript, runScript, type CalcState, type KeyId } from
 import { LIMITS } from "../../api/_lib/protocol";
 import { validateExplainRequest } from "../../api/_lib/schema";
 import { buildExplainRequest, formatKeystrokes, requestForLcd, requestKey } from "../../src/ui/explain/request";
+import { calcReducer, type CalcStore } from "../../src/hooks/calculatorReducer";
+
+/** Key-log entries (with the real 2ND state) as the emulator records them. */
+const log = (keys: readonly KeyId[]) =>
+  keys.reduce<CalcStore>((st, key) => calcReducer(st, { type: "press", key }), { calc: initialState(), log: [] }).log;
 
 const TVM_SCRIPT = "2ND CLR_TVM 10 N 5 I/Y 100 +|- PV CPT FV";
 
@@ -25,20 +30,24 @@ function inWorksheet(id: "NPV" | "IRR" | "AMORT" | "STAT", varId: string): CalcS
 
 describe("formatKeystrokes", () => {
   it("merges digits into numbers and names 2ND functions", () => {
-    expect(formatKeystrokes(parseScript(TVM_SCRIPT))).toEqual(["2ND CLR TVM", "10", "N", "5", "I/Y", "100", "+|−", "PV", "CPT", "FV"]);
+    expect(formatKeystrokes(log(parseScript(TVM_SCRIPT)))).toEqual(["2ND CLR TVM", "10", "N", "5", "I/Y", "100", "+|−", "PV", "CPT", "FV"]);
   });
   it("handles decimals, double 2ND (cancel) and keys without a 2ND function", () => {
-    expect(formatKeystrokes(["1", "2", "DOT", "5", "STO", "1"])).toEqual(["12.5", "STO", "1"]);
-    expect(formatKeystrokes(["2ND", "2ND", "FV"])).toEqual(["FV"]);
-    expect(formatKeystrokes(["2ND", "CF", "NPV"])).toEqual(["CF", "NPV"]);
-    expect(formatKeystrokes(["2ND", "7", "ENTER"])).toEqual(["2ND DATA", "ENTER"]);
+    expect(formatKeystrokes(log(["1", "2", "DOT", "5", "STO", "1"]))).toEqual(["12.5", "STO", "1"]);
+    expect(formatKeystrokes(log(["2ND", "2ND", "FV"]))).toEqual(["FV"]);
+    expect(formatKeystrokes(log(["2ND", "CF", "NPV"]))).toEqual(["CF", "NPV"]);
+    expect(formatKeystrokes(log(["2ND", "7", "ENTER"]))).toEqual(["2ND DATA", "ENTER"]);
+  });
+  it("does not apply a 2ND that the engine ignored while an error was shown", () => {
+    const keys = parseScript("1 ÷ 0 = 2ND CE|C 5 PV");
+    expect(formatKeystrokes(log(keys))).toEqual(["1", "÷", "0", "=", "CE|C", "5", "PV"]);
   });
   it("keeps only the most recent entries, each within the server limits", () => {
     const keys: KeyId[] = Array.from({ length: 500 }, (_, i) => (i % 2 ? "ENTER" : "1"));
-    const out = formatKeystrokes(keys);
+    const out = formatKeystrokes(log(keys));
     expect(out).toHaveLength(LIMITS.keystrokes);
     expect(out.at(-1)).toBe("ENTER");
-    expect(formatKeystrokes(Array(40).fill("9")).every((k) => k.length <= LIMITS.keystrokeLength)).toBe(true);
+    expect(formatKeystrokes(log(Array(40).fill("9"))).every((k) => k.length <= LIMITS.keystrokeLength)).toBe(true);
   });
 });
 
@@ -56,7 +65,7 @@ describe("buildExplainRequest", () => {
   });
 
   it("sends the TVM registers plus P/Y, C/Y and BGN after CPT in calculator mode", () => {
-    const req = buildExplainRequest(afterCptFv(), parseScript(TVM_SCRIPT));
+    const req = buildExplainRequest(afterCptFv(), log(parseScript(TVM_SCRIPT)));
     expect(req).toEqual({
       context: "TVM",
       inputs: { N: 10, "I/Y": 5, PV: -100, PMT: 0, FV: 162.8894626777, "P/Y": 1, "C/Y": 1, "END/BGN": "END" },
@@ -77,7 +86,7 @@ describe("buildExplainRequest", () => {
 
   it("works through the real pipeline: CPT marks the LCD as computed", () => {
     const s = runScript(TVM_SCRIPT);
-    const req = buildExplainRequest(s, parseScript(TVM_SCRIPT));
+    const req = buildExplainRequest(s, log(parseScript(TVM_SCRIPT)));
     expect(req?.context).toBe("TVM");
     expect(req?.result.label).toBe("FV");
   });
@@ -116,7 +125,7 @@ describe("requestForLcd (worksheet slices)", () => {
   it("builds requests the server accepts even at the device limits (24 CF groups, 50 data points)", () => {
     const cf = inWorksheet("NPV", "npv");
     cf.ws.cf.groups = Array.from({ length: 24 }, (_, k) => ({ amount: 1000 * (k + 1), freq: 9999 }));
-    const a = requestForLcd(cf, { label: "NPV", value: "1,234,567.89" }, parseScript("NPV 20 ENTER ↓ CPT"));
+    const a = requestForLcd(cf, { label: "NPV", value: "1,234,567.89" }, log(parseScript("NPV 20 ENTER ↓ CPT")));
     expect(validateExplainRequest(JSON.parse(JSON.stringify(a))).ok).toBe(true);
     expect(new TextEncoder().encode(JSON.stringify(a)).length).toBeLessThan(8 * 1024);
 
@@ -137,7 +146,7 @@ describe("requestForLcd (worksheet slices)", () => {
 describe("requestKey", () => {
   it("identifies the same computation regardless of keystrokes", () => {
     const a = buildExplainRequest(afterCptFv(), []);
-    const b = buildExplainRequest(afterCptFv(), parseScript(TVM_SCRIPT));
+    const b = buildExplainRequest(afterCptFv(), log(parseScript(TVM_SCRIPT)));
     expect(requestKey(a)).toBe(requestKey(b));
     expect(requestKey(null)).toBe("");
   });

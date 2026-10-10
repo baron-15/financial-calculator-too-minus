@@ -48,3 +48,11 @@ describe("arithmetic inside a worksheet", () => {
     expect(lcd("2ND P/Y 5 × 12 = ENTER")).toBe("P/Y= 60.00 ◄");
   });
 });
+
+describe("computed dates are working values", () => {
+  it("ENTER after computing a date keeps the computed date", () => {
+    // DT1 1-01-2026 + 247 days = 9-05-2026 (SAT)
+    expect(lcd("2ND DATE 1.0126 ENTER ↓ ↓ 247 ENTER ↑ CPT")).toBe("DT2= 9-05-2026 SAT *");
+    expect(lcd("2ND DATE 1.0126 ENTER ↓ ↓ 247 ENTER ↑ CPT ENTER")).toBe("DT2= 9-05-2026 ◄");
+  });
+});

@@ -4,7 +4,7 @@ import { useCalculator } from "../hooks/useCalculator";
 import { usePhysicalKeyboard } from "../hooks/usePhysicalKeyboard";
 import { Calculator } from "../ui/device/Calculator";
 import { PanelBoard } from "../ui/panels/PanelBoard";
-import { keysSinceLastClear } from "../ui/panels/tape";
+import { entriesSinceLastClear } from "../ui/panels/tape";
 
 export function EmulatorPage() {
   const calc = useCalculator();
@@ -19,7 +19,7 @@ export function EmulatorPage() {
     [pressKey],
   );
   usePhysicalKeyboard(calc.state.mode.kind, press);
-  const explainKeys = useMemo(() => keysSinceLastClear(log), [log]);
+  const explainKeys = useMemo(() => entriesSinceLastClear(log), [log]);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-2 py-4 sm:px-4 lg:py-8">

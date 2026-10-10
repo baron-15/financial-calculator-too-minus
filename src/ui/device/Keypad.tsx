@@ -1,5 +1,6 @@
-import { memo, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { memo, useEffect, useId, useMemo, useRef, type ReactNode } from "react";
 import { KEY_ROWS, type KeyId, type KeySpec } from "../../engine";
+import { SECOND_TIPS } from "./keyTips";
 import { layoutKeys } from "./layout";
 
 const LONG_PRESS_MS = 500;
@@ -31,8 +32,26 @@ function legend(spec: KeySpec): ReactNode {
   return spec.label;
 }
 
-function keyTitle(spec: KeySpec): string {
-  return spec.second ? `${spec.aria} (2ND: ${spec.second.label})` : spec.aria;
+/** Gold legend; the tiny modifier letter in "eˣ" is drawn as a real superscript so it stays legible. */
+function goldLegend(label: string): ReactNode {
+  if (!label.endsWith("ˣ")) return label;
+  // One inline box: .ba-gold is a flex container, and vertical-align only works on inline content.
+  return (
+    <span>
+      {label.slice(0, -1)}
+      <sup>x</sup>
+    </span>
+  );
+}
+
+/**
+ * Accessible description of a key's gold 2ND function, e.g. "2ND: CLR TVM, Clear TVM". It replaces a native
+ * title tooltip, which popped up on top of the custom key tip.
+ */
+export function secondDescription(spec: KeySpec): string | null {
+  if (!spec.second) return null;
+  const name = SECOND_TIPS[spec.second.fn]?.name;
+  return name && name.toUpperCase() !== spec.second.label.toUpperCase() ? `2ND: ${spec.second.label}, ${name}` : `2ND: ${spec.second.label}`;
 }
 
 interface KeyProps {
@@ -51,6 +70,8 @@ const Key = memo(function Key({ spec, row, col, rowSpan, flashN, pressed2nd, onP
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const longPressed = useRef(false);
+  const descId = useId();
+  const description = secondDescription(spec);
 
   useEffect(() => {
     if (!flashN) return;
@@ -87,14 +108,19 @@ const Key = memo(function Key({ spec, row, col, rowSpan, flashN, pressed2nd, onP
   return (
     <div className="ba-cell" style={{ gridRow: `${row} / span ${rowSpan}`, gridColumn: col }}>
       <span className="ba-gold" aria-hidden="true">
-        {spec.second?.label ?? ""}
+        {goldLegend(spec.second?.label ?? "")}
       </span>
+      {description && (
+        <span id={descId} className="sr-only">
+          {description}
+        </span>
+      )}
       <button
         type="button"
         className={classes}
         aria-label={spec.aria}
         aria-pressed={spec.id === "2ND" ? pressed2nd : undefined}
-        title={keyTitle(spec)}
+        aria-describedby={description ? descId : undefined}
         data-calc-key={spec.id}
         onPointerEnter={(e) => {
           if (e.pointerType !== "mouse") return;

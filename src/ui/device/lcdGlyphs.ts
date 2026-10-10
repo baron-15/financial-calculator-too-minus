@@ -1,13 +1,15 @@
 /**
- * How LCD text maps onto the DSEG segment fonts. Pure so it can be unit tested.
- * - DSEG digit cells are 0.816em wide; "." has zero width (it sits in the previous cell's corner).
+ * How LCD text maps onto the display faces. Pure so it can be unit tested.
+ * - Numeric values use the DSEG7 font. Its cells are 0.816em wide; "." has zero width (it sits in the
+ *   previous cell's corner).
  * - DSEG7 has no comma, so thousands separators are drawn by the skin as zero-width marks.
  * - A space in DSEG is narrow (0.2em); in a numeric value it becomes a full blank cell, e.g. the
  *   gap before a scientific-notation exponent.
+ * - Labels and text values ("PV", "ΣX²", "Error 5", "ACT") are drawn as SVG segments (lcdSegments.ts).
  */
+import { segWidthEm } from "./lcdSegments";
 
 export const CELL_EM = 0.816;
-const NARROW_EM = 0.2;
 
 /** Values the 7-segment face can show: digits, sign, separators, and the scientific-notation gap. */
 export function isNumericValue(value: string): boolean {
@@ -39,12 +41,13 @@ export function numericGlyphs(value: string): Glyph[] {
   return out;
 }
 
-/** Width of `text` in em when set in a DSEG face. */
+/** Width of `text` in em: DSEG7 cells for a numeric value, segment glyphs for anything else. */
 export function textWidthEm(text: string, numeric: boolean): number {
+  if (!numeric) return segWidthEm(text);
   let w = 0;
   for (const ch of text) {
-    if (ch === "." || (numeric && ch === ",")) continue;
-    w += ch === " " && !numeric ? NARROW_EM : CELL_EM;
+    if (ch === "." || ch === ",") continue;
+    w += CELL_EM;
   }
   return w;
 }

@@ -14,6 +14,15 @@ describe("ExplainPanel (props contract: state + keystrokes)", () => {
     expect(h).toContain("AI explanations can be wrong; verify with the formulas.");
   });
 
+  it("has its own labelled heading by default, and none inside a card that has one (title={null})", () => {
+    const own = render(initialState());
+    expect(own).toMatch(/^<section class="explain-root[^"]*" aria-labelledby="([^"]+)"><h2 id="\1"[^>]*>Step-by-step explanation<\/h2>/);
+    const bare = renderToStaticMarkup(createElement(ExplainPanel, { state: initialState(), keystrokes: [], title: null }));
+    expect(bare).toMatch(/^<div class="explain-root/);
+    expect(bare).not.toContain("<h2");
+    expect(bare).not.toContain("<section");
+  });
+
   it("enables the button for a computed LCD value and names the result", () => {
     const s = initialState();
     s.arith.x = 162.8894627;

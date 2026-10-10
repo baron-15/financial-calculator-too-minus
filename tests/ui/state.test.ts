@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { initialState, renderLcd } from "../../src/engine";
 import { calcReducer, LOG_LIMIT, type CalcStore } from "../../src/hooks/calculatorReducer";
-import { activePanelId, activeVarLabel } from "../../src/ui/panels/activePanel";
+import { activePanelId, activeVarId } from "../../src/ui/panels/activePanel";
 import { storeAfter } from "./helpers";
 
 describe("calcReducer", () => {
@@ -66,10 +66,16 @@ describe("activePanelId", () => {
   });
 });
 
-describe("activeVarLabel", () => {
-  it("names the variable on the LCD", () => {
-    expect(activeVarLabel(storeAfter("2ND P/Y").calc)).toBe("P/Y");
-    expect(activeVarLabel(storeAfter("RCL PV").calc)).toBe("PV");
-    expect(activeVarLabel(storeAfter("2 + 3 =").calc)).toBeNull();
+describe("activeVarId", () => {
+  it("names the variable on display by id, including settings with an empty LCD label", () => {
+    expect(activeVarId(storeAfter("2ND P/Y").calc)).toBe("py");
+    expect(activeVarId(storeAfter("RCL PV").calc)).toBe("pv");
+    expect(activeVarId(storeAfter("CF ↓").calc)).toBe("c01");
+    expect(activeVarId(storeAfter("2ND BOND ↓ ↓ ↓ ↓").calc)).toBe("dayCount");
+    expect(activeVarId(storeAfter("2ND BOND ↓ ↓ ↓ ↓ ↓").calc)).toBe("freq");
+    expect(activeVarId(storeAfter("2ND FORMAT ↓").calc)).toBe("angle");
+    expect(activeVarId(storeAfter("2ND FORMAT ↓ ↓ ↓").calc)).toBe("sep");
+    expect(activeVarId(storeAfter("2ND STAT").calc)).toBe("model");
+    expect(activeVarId(storeAfter("2 + 3 =").calc)).toBeNull();
   });
 });

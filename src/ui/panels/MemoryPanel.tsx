@@ -9,7 +9,7 @@ export function MemoryPanel({ state, active, current }: { state: CalcState; acti
     <PanelCard id="memory" title="Memory" active={active} meta={meta}>
       <ul className="grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-2">
         {Array.from({ length: 10 }, (_, i) => {
-          const isCur = active && current === `M${i}`;
+          const isCur = active && current === `m${i}`;
           return (
             <li key={i} className={`panel-row${isCur ? " is-current" : ""}`} data-testid={`mem-${i}`}>
               <span className="font-medium">M{i}</span>

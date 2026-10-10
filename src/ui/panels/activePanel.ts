@@ -43,15 +43,22 @@ export function activePanelId(s: CalcState): PanelId | null {
   return null;
 }
 
-/** LCD label of the variable on display ("PV", "C01", "M3"), or null. */
-export function activeVarLabel(s: CalcState): string | null {
+/** Standard-mode LCD label of a TVM register → the id panels use for it. */
+const TVM_IDS: Record<string, string> = { N: "n", "I/Y": "iy", PV: "pv", PMT: "pmt", FV: "fv" };
+
+/**
+ * Id of the variable on display, or null: the worksheet variable id in a worksheet ("c01", "dayCount",
+ * "m3"; settings have an empty LCD label, so ids are matched rather than labels), or the TVM register
+ * ("pv") shown in standard mode.
+ */
+export function activeVarId(s: CalcState): string | null {
   if (!s.on) return null;
   if (s.mode.kind === "ws") {
     try {
-      return currentWorksheet(s)?.v?.label ?? null;
+      return currentWorksheet(s)?.v?.id ?? null;
     } catch {
       return null;
     }
   }
-  return s.mode.kind === "calc" && s.view.label ? s.view.label : null;
+  return s.mode.kind === "calc" ? (TVM_IDS[s.view.label] ?? null) : null;
 }

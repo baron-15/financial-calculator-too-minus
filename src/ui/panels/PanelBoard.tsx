@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 import type { CalcState, KeyId } from "../../engine";
 import type { LogEntry } from "../../hooks/calculatorReducer";
 import { ExplainPanel } from "../explain/ExplainPanel";
-import { activePanelId, activeVarLabel, hasDedicatedPanel, type PanelId } from "./activePanel";
+import { activePanelId, activeVarId, hasDedicatedPanel, type PanelId } from "./activePanel";
 import { BondPanel } from "./BondPanel";
 import { CashFlowPanel } from "./CashFlowPanel";
 import { MemoryPanel } from "./MemoryPanel";
@@ -35,7 +35,7 @@ interface PanelDef {
 
 export function PanelBoard({ state, log, explainKeys, onClearTape }: PanelBoardProps) {
   const active = activePanelId(state);
-  const current = activeVarLabel(state);
+  const current = activeVarId(state);
   const showWorksheet = state.mode.kind === "ws" && !hasDedicatedPanel(state.mode.id);
   const props = (id: PanelId) => ({ state, active: active === id, current });
 
@@ -47,7 +47,7 @@ export function PanelBoard({ state, log, explainKeys, onClearTape }: PanelBoardP
       place: "wide",
       node: (
         <PanelCard id="explain" title="Explain this calculation">
-          <ExplainPanel state={state} keystrokes={explainKeys} />
+          <ExplainPanel state={state} keystrokes={explainKeys} title={null} />
         </PanelCard>
       ),
     },

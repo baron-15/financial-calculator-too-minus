@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ALL_KEYS, KEY_ROWS, type KeySpec } from "../../src/engine";
+import { ALL_KEYS, KEY_BY_ID, KEY_ROWS, type KeySpec } from "../../src/engine";
+import { secondDescription } from "../../src/ui/device/Keypad";
 import { KEY_TIPS, SECOND_TIPS } from "../../src/ui/device/keyTips";
 import { layoutKeys } from "../../src/ui/device/layout";
 import { EQ_EM, fitLcd, isNumericValue, LCD_LINE_CQW, numericGlyphs, textWidthEm, VALUE_MAX_CQW } from "../../src/ui/device/lcdGlyphs";
@@ -68,6 +69,18 @@ describe("key tips", () => {
   });
 });
 
+describe("2ND descriptions (announced via aria-describedby instead of a title tooltip)", () => {
+  it("describes every key's gold function and nothing for keys without one", () => {
+    for (const spec of ALL_KEYS) {
+      const d = secondDescription(spec);
+      if (spec.second) expect(d, spec.id).toMatch(new RegExp(`^2ND: ${spec.second.label.replace(/[|\\/]/g, "\\$&")}`));
+      else expect(d, spec.id).toBeNull();
+    }
+    expect(secondDescription(KEY_BY_ID.FV)).toBe("2ND: CLR TVM, Clear TVM");
+    expect(secondDescription(KEY_BY_ID.PV)).toBe("2ND: AMORT, Amortization");
+  });
+});
+
 describe("LCD glyphs", () => {
   it("uses the 7-segment face only for numeric values", () => {
     expect(isNumericValue("-1,234.56")).toBe(true);
@@ -84,9 +97,12 @@ describe("LCD glyphs", () => {
     expect(numericGlyphs("1.5 12")).toEqual([{ t: "text", s: "1.5" }, { t: "blank" }, { t: "text", s: "12" }]);
   });
 
-  it("measures separators as zero width", () => {
+  it("measures separators as zero width, and text by its segment glyphs", () => {
     expect(textWidthEm("1,234.00", true)).toBeCloseTo(6 * 0.816);
-    expect(textWidthEm("AB C", false)).toBeCloseTo(3 * 0.816 + 0.2);
+    // A space in text is a full blank cell ("Error 5", "12-31-2003 SAT"); ² and ' are half cells.
+    expect(textWidthEm("AB C", false)).toBeCloseTo(4 * 0.816);
+    expect(textWidthEm("ΣX²", false)).toBeCloseTo(2.5 * 0.816);
+    expect(textWidthEm("x\u0304", false)).toBeCloseTo(0.816);
   });
 
   it("keeps the full size for ten digits and shrinks only when a long label needs room", () => {

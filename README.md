@@ -26,6 +26,15 @@ A faithful web recreation of the Texas Instruments **BA II Plus** financial calc
   - `script.ts` runs keystroke scripts, e.g. `runScript("2ND FV 10 N 5 I/Y 100 +|- PV CPT FV")`.
 - **`src/ui/`, `src/pages/`** hold the React UI: the device skin, side panels, and tool pages.
 - **`api/explain.ts`** is a serverless function that asks Claude for a step-by-step explanation of the last computation. It needs `ANTHROPIC_API_KEY` on the server.
+
+## AI explainer (feature flag)
+
+Every calculation runs in the browser. The only feature that calls a server is the "Explain this result" button, which asks Claude to walk through the last result.
+
+It is **off by default**: the button is replaced by "Coming soon, when I can afford the API call.", and the site works as a plain static build. To turn it on:
+
+1. Set `VITE_AI_EXPLAINER=on` and `ANTHROPIC_API_KEY=…` in `.env` (see `.env.example`).
+2. Run `npm run dev`, or for production, build with the flag and deploy `api/explain.ts` as a serverless function.
 - **`docs/SPEC.md`** is the behavior spec (formulas, keys, worksheets, defaults, errors), sourced from the TI guidebook. **It is the source of truth.**
 
 ## Testing approach

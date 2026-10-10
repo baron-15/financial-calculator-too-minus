@@ -4,6 +4,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import { ann, expectAnn, freshEmulator, key, lcd, run } from "./calc";
+import { AI_BASE_URL, AI_SKIP_REASON, COMING_SOON } from "./ai";
 
 test.beforeEach(async ({ page }) => {
   // Never reach the real explainer, even by accident.
@@ -227,7 +228,26 @@ test.describe("persistence", () => {
   });
 });
 
-test.describe("explainer on the emulator page", () => {
+test.describe("explainer on the emulator page, flag off (default)", () => {
+  test("shows the coming-soon note and never calls the API", async ({ page, isMobile }) => {
+    let calls = 0;
+    await page.unroute("**/api/explain");
+    await page.route("**/api/explain", (route) => {
+      calls++;
+      return route.fulfill({ status: 599, body: "should not be called" });
+    });
+    if (isMobile) await page.getByRole("tab", { name: /Explain/ }).click();
+    await run(page, "2ND CLR_TVM 10 N 5 I/Y 100 +|- PV CPT FV");
+    await expect(page.getByTestId("panel-explain").getByTestId("explain-coming-soon")).toHaveText(COMING_SOON);
+    await expect(page.getByRole("button", { name: "Explain this result" })).toHaveCount(0);
+    expect(calls).toBe(0);
+  });
+});
+
+test.describe("explainer on the emulator page (VITE_AI_EXPLAINER=on)", () => {
+  test.skip(!AI_BASE_URL, AI_SKIP_REASON);
+  test.use({ baseURL: AI_BASE_URL });
+
   test("enables on a computed value, streams Markdown and renders $$ math", async ({ page, isMobile }) => {
     let body: Record<string, unknown> | null = null;
     let calls = 0;

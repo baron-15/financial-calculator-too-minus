@@ -1,11 +1,13 @@
 /**
  * TVM and Cash Flow tool pages. Assertions that need real finance numbers are skipped until the finance
- * engine is implemented (its stubs throw "not implemented"). The explainer API is always mocked here.
+ * engine is implemented (its stubs throw "not implemented"). The explainer API is always mocked here,
+ * and the explainer specs run on the VITE_AI_EXPLAINER=on server (tests/e2e/ai.ts).
  */
 import { expect, test, type Page } from "@playwright/test";
 import { npv } from "../../src/engine/finance/cashflow";
 import { solveTvm } from "../../src/engine/finance/tvm";
 import { implemented } from "../helpers/ready";
+import { AI_BASE_URL, AI_SKIP_REASON, COMING_SOON } from "./ai";
 
 // E2E_FINANCE_READY=1 forces the finance-dependent tests on (e.g. against a deployed build); =0 forces them off.
 const forced = process.env.E2E_FINANCE_READY;
@@ -28,7 +30,9 @@ test.describe("TVM tool", () => {
     for (const name of ["Inputs", "Result", "Cash-flow timeline", "Amortization schedule", "How it's calculated"]) {
       await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
     }
-    await expect(page.getByRole("button", { name: "Explain this result" })).toBeDisabled();
+    // The AI explainer is off by default: a coming-soon note, no button.
+    await expect(page.getByTestId("explain-coming-soon")).toHaveText(COMING_SOON);
+    await expect(page.getByRole("button", { name: "Explain this result" })).toHaveCount(0);
     // KaTeX renders the governing equation.
     await expect(page.locator(".katex").first()).toBeVisible();
   });
@@ -94,25 +98,39 @@ test.describe("TVM tool", () => {
       const text = await (await file.createReadStream()).toArray();
       expect(Buffer.concat(text).toString("utf8")).toMatch(/^Period,Beginning balance,Payment,Principal,Interest,Ending balance\r\n1,120000\.00,-729\.13,/);
     });
+  });
+});
 
-    test("explains a result with the (mocked) AI endpoint and renders math", async ({ page }) => {
-      let body: Record<string, unknown> | null = null;
-      await page.route("**/api/explain", async (route) => {
-        body = route.request().postDataJSON() as Record<string, unknown>;
-        await route.fulfill({
-          status: 200,
-          contentType: "text/plain; charset=utf-8",
-          body: "**Formula**\n\n$$FV = -PV(1+i)^N$$\n\n**Result**\n\nFV = 162.89",
-        });
+test.describe("TVM tool explainer (VITE_AI_EXPLAINER=on)", () => {
+  test.skip(!AI_BASE_URL, AI_SKIP_REASON);
+  test.use({ baseURL: AI_BASE_URL });
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/tools/tvm");
+  });
+
+  test("the button is there but disabled until something is calculated", async ({ page }) => {
+    await expect(page.getByRole("button", { name: "Explain this result" })).toBeDisabled();
+    await expect(page.getByTestId("explain-coming-soon")).toHaveCount(0);
+  });
+
+  test("explains a result with the (mocked) AI endpoint and renders math", async ({ page }) => {
+    test.skip(!TVM_READY, "needs a computed result");
+    let body: Record<string, unknown> | null = null;
+    await page.route("**/api/explain", async (route) => {
+      body = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 200,
+        contentType: "text/plain; charset=utf-8",
+        body: "**Formula**\n\n$$FV = -PV(1+i)^N$$\n\n**Result**\n\nFV = 162.89",
       });
-      await page.selectOption("#tvm-example", "fv");
-      await page.getByRole("button", { name: "Explain this result" }).click();
-      const out = page.getByTestId("explain-output");
-      await expect(out).toContainText("FV = 162.89");
-      await expect(out.locator(".katex-display")).toBeVisible();
-      expect(body).toMatchObject({ context: "TVM", result: { label: "FV", value: "162.89" } });
-      await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
     });
+    await page.selectOption("#tvm-example", "fv");
+    await page.getByRole("button", { name: "Explain this result" }).click();
+    const out = page.getByTestId("explain-output");
+    await expect(out).toContainText("FV = 162.89");
+    await expect(out.locator(".katex-display")).toBeVisible();
+    expect(body).toMatchObject({ context: "TVM", result: { label: "FV", value: "162.89" } });
+    await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
   });
 
   test("shows the server's message when the explainer is not configured", async ({ page }) => {

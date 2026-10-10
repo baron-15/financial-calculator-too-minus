@@ -1,16 +1,48 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { initialState, parseScript, type CalcState } from "../../src/engine";
 import { calcReducer, type CalcStore, type LogEntry } from "../../src/hooks/calculatorReducer";
+import { ExplainPanel } from "../../src/ui/explain/ExplainPanel";
+import { ExplainView } from "../../src/ui/explain/ExplainView";
+import { COMING_SOON_MESSAGE } from "../../src/ui/explain/flag";
 
 const log = (script: string) =>
   parseScript(script).reduce<CalcStore>((st, key) => calcReducer(st, { type: "press", key }), { calc: initialState(), log: [] }).log;
-import { ExplainPanel } from "../../src/ui/explain/ExplainPanel";
 
 const render = (state: CalcState, keys: readonly LogEntry[] = []) => renderToStaticMarkup(createElement(ExplainPanel, { state, keystrokes: keys }));
 
-describe("ExplainPanel (props contract: state + keystrokes)", () => {
+describe("AI explainer feature flag (VITE_AI_EXPLAINER)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("is off by default: a coming-soon note replaces the button", () => {
+    vi.stubEnv("VITE_AI_EXPLAINER", "");
+    const h = render(initialState());
+    expect(h).toContain(COMING_SOON_MESSAGE);
+    expect(h).not.toContain("<button");
+    expect(h).toMatch(/<h2[^>]*>Step-by-step explanation<\/h2>/); // same heading and frame
+  });
+
+  it("stays off for a computed result, and never builds a request button", () => {
+    vi.stubEnv("VITE_AI_EXPLAINER", "");
+    const s = initialState();
+    s.view = { ...s.view, label: "FV", assigned: true, computed: true };
+    expect(render(s, log("2ND CLR_TVM 10 N 5 I/Y 100 +|- PV CPT FV"))).not.toContain("Explain this result");
+  });
+
+  it("turns on with VITE_AI_EXPLAINER=on, and the enabled prop overrides it", () => {
+    vi.stubEnv("VITE_AI_EXPLAINER", "on");
+    expect(render(initialState())).toContain("Explain this result");
+    const forcedOff = renderToStaticMarkup(createElement(ExplainView, { request: null, enabled: false, title: null }));
+    expect(forcedOff).toContain(COMING_SOON_MESSAGE);
+    expect(forcedOff).not.toContain("<h2");
+  });
+});
+
+describe("ExplainPanel (props contract: state + keystrokes), flag on", () => {
+  beforeEach(() => vi.stubEnv("VITE_AI_EXPLAINER", "on"));
+  afterEach(() => vi.unstubAllEnvs());
+
   it("shows a hint and a disabled button when nothing is computed", () => {
     const h = render(initialState());
     expect(h).toContain("Compute something (e.g. CPT FV) to get a step-by-step explanation");

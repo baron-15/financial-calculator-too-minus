@@ -19,7 +19,7 @@ function inWorksheet(id: "NPV" | "IRR" | "AMORT" | "STAT", varId: string): CalcS
   const s = initialState();
   s.mode = { kind: "ws", id, varId };
   s.view = { ...s.view, assigned: true, computed: true };
-  s.ws.cf = { cf0: -7000, groups: [{ amount: 3000, freq: 1 }, { amount: 4000, freq: 1 }, { amount: 5000, freq: 4 }], i: 20, npv: 7266.44, irr: 52.71 };
+  s.ws.cf = { cf0: -7000, groups: [{ amount: 3000, freq: 1 }, { amount: 4000, freq: 1 }, { amount: 5000, freq: 4 }], i: 20, npv: 7266.44, irr: 52.71, npvValid: true, irrValid: true };
   return s;
 }
 

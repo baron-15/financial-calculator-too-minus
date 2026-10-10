@@ -87,7 +87,8 @@ export function CashFlowToolPage() {
       return;
     }
     const cf = toCfData(live.series, live.rate);
-    updateSavedState((s) => ({ ...s, ws: { ...s.ws, cf: { ...s.ws.cf, ...cf } } }));
+    // New cash flows invalidate any NPV/IRR previously computed on the device.
+    updateSavedState((s) => ({ ...s, ws: { ...s.ws, cf: { ...s.ws.cf, ...cf, npvValid: false, irrValid: false } } }));
     navigate("/");
   };
 

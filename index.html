@@ -4,7 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="A faithful online recreation of the BA II Plus financial calculator: TVM, cash flows, NPV/IRR, amortization, bonds, depreciation, statistics, and more." />
+    <meta name="color-scheme" content="light dark" />
     <title>BA II Plus Online</title>
+    <script>
+      // Apply the saved page theme before first paint (see src/hooks/useTheme.ts).
+      (function () {
+        var t = null;
+        try {
+          t = localStorage.getItem("ba2plus:theme");
+        } catch (e) {}
+        if (t !== "light" && t !== "dark") t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", t);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

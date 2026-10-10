@@ -359,9 +359,12 @@ describe("RAND (2ND ÷)", () => {
   it("seeding leaves the display alone", () => {
     expect(display("7 STO 2ND RAND")).toBe("7.00");
   });
-  it("the seed must be a positive integer (Error 2)", () => {
-    expect(display("2.5 STO 2ND RAND")).toBe("Error 2");
+  it("the seed must be positive (Error 2); a fractional seed is accepted (guidebook p. 8 stores 0.86)", () => {
+    expect(display("2.5 STO 2ND RAND")).toBe("2.50");
+    expect(values("2.5 STO 2ND RAND")).toEqual(values("2.5 STO 2ND RAND"));
+    expect(values("2.5 STO 2ND RAND")).not.toEqual(values("3 STO 2ND RAND"));
     expect(display("0 STO 2ND RAND")).toBe("Error 2");
+    expect(display("1 +|- STO 2ND RAND")).toBe("Error 2");
   });
   it("RAND starts a new value inside a calculation", () => {
     const s = runScript("10 + 2ND RAND =");

@@ -130,7 +130,7 @@ export function resolveAction(key: KeyId, secondActive: boolean): Action {
 export const SCRIPT_ALIASES: Record<string, KeyId> = {
   "I/Y": "IY",
   "+": "ADD", "-": "SUBTRACT", "−": "SUBTRACT", "*": "MULTIPLY", "×": "MULTIPLY", "/": "DIVIDE", "÷": "DIVIDE",
-  "=": "EQUALS", "(": "LPAREN", ")": "RPAREN", "^": "POWER", "y^x": "POWER", "%": "PERCENT",
+  "=": "EQUALS", "(": "LPAREN", ")": "RPAREN", "^": "POWER", "y^x": "POWER", "yˣ": "POWER", "%": "PERCENT",
   "√": "SQRT", "x²": "SQUARE", "1/x": "RECIP", ".": "DOT", "+|-": "PLUSMINUS", "±": "PLUSMINUS",
   "CE/C": "CE_C", "CE|C": "CE_C", "→": "BACKSPACE", "BKSP": "BACKSPACE", "↑": "UP", "↓": "DOWN",
   "ON/OFF": "ONOFF", "ON|OFF": "ONOFF",

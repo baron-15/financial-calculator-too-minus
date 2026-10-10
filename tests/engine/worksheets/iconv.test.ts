@@ -37,9 +37,10 @@ describe("ICONV worksheet: behavior", () => {
     expect(runScript("2ND ICONV ↓ ↓ 4 ENTER CPT").ws.iconv).toMatchObject({ nom: 0, eff: 0, cy: 4 });
   });
 
-  it("CLR WORK restores the defaults", () => {
+  it("CLR WORK clears NOM and EFF without affecting C/Y (guidebook p. 62)", () => {
     const s = runScript("2ND ICONV 15 ENTER ↓ ↓ 4 ENTER CLR_WORK");
-    expect(s.ws.iconv).toEqual({ ...ICONV_DEFAULTS, marks: {} });
+    expect(s.ws.iconv).toEqual({ ...ICONV_DEFAULTS, cy: 4, marks: { cy: "entered" } });
+    expect(runScript("2ND ICONV 15 ENTER CLR_WORK").ws.iconv).toEqual({ ...ICONV_DEFAULTS, marks: {} });
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { display, lcd } from "../helpers/run";
+import { display, lcd, runScript } from "../helpers/run";
 
 describe("Phase 0 pipeline smoke tests", () => {
   it("shows 0.00 on a fresh calculator", () => {
@@ -36,8 +36,9 @@ describe("Phase 0 pipeline smoke tests", () => {
 });
 
 describe("worksheet display value is the working value", () => {
-  it("TVM key inside a worksheet stores the displayed value", () => {
-    expect(lcd("2ND P/Y 12 ENTER 2ND QUIT 2ND P/Y PV")).toBe("PV= 12.00 ◄");
+  it("TVM key inside a worksheet stores the displayed value and stays in the worksheet (guidebook p. 22)", () => {
+    expect(lcd("2ND P/Y 12 ENTER 2ND QUIT 2ND P/Y PV")).toBe("P/Y 12.00");
+    expect(runScript("2ND P/Y 12 ENTER 2ND QUIT 2ND P/Y PV").ws.tvm.pv).toBe(12);
   });
 });
 

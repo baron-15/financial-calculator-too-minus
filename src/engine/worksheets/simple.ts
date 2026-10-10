@@ -103,6 +103,8 @@ interface SolverSpec<F extends string> {
   solve(target: F, d: Fields<F>): number;
   /** Entry-time validation (throw CalcError to reject the value). */
   validate?(id: F, x: number): void;
+  /** Fields that 2ND CLR WORK leaves alone (ICONV keeps C/Y). */
+  keepOnClear?: readonly F[];
 }
 
 function solverWorksheet<F extends string>(spec: SolverSpec<F>): WorksheetDef {
@@ -130,7 +132,16 @@ function solverWorksheet<F extends string>(spec: SolverSpec<F>): WorksheetDef {
       return spec.put(s, { ...d, [v.id]: value, marks: markComputed(d.marks, v.id) });
     },
     status: (s, id) => markOf(spec.get(s).marks, id),
-    clearWork: (s) => spec.put(s, { ...spec.defaults, marks: {} }),
+    clearWork: (s) => {
+      const d = spec.get(s);
+      const next: Fields<F> = { ...spec.defaults, marks: {} };
+      for (const f of spec.keepOnClear ?? []) {
+        next[f] = d[f];
+        const m = d.marks?.[f];
+        if (m) next.marks = { ...next.marks, [f]: m };
+      }
+      return spec.put(s, next);
+    },
   };
 }
 
@@ -161,6 +172,7 @@ export const pctChgWorksheet = solverWorksheet<keyof PctChange>({
 
 // ---------------------------------------------------------------------------------------------
 // ICONV — NOM, EFF (enter-or-compute), C/Y (enter, > 0 else Error 4).
+// 2ND CLR WORK clears NOM and EFF "without affecting C/Y" (guidebook p. 62).
 
 export const iconvWorksheet = solverWorksheet<"nom" | "eff" | "cy">({
   id: "ICONV",
@@ -177,6 +189,7 @@ export const iconvWorksheet = solverWorksheet<"nom" | "eff" | "cy">({
   validate: (id, x) => {
     if (id === "cy" && !(x > 0)) throw new CalcError(4);
   },
+  keepOnClear: ["cy"],
 });
 
 // ---------------------------------------------------------------------------------------------

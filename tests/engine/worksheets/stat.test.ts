@@ -65,10 +65,10 @@ describe("STAT worksheet: behavior", () => {
     expect(lcd(`2ND STAT SET SET SET SET SET ${down(X_PRIME + 1)}`, from)).toBe("Y'= 5.80");
   });
 
-  it("CLR WORK in STAT clears the data points and resets the method to LIN", () => {
+  it("CLR WORK in STAT resets the method to LIN and clears all values except X and Y (guidebook p. 55)", () => {
     const from = withStat({ model: "EXP", points: [{ x: 1, y: 2 }, { x: 2, y: 3 }], xPrime: 4 });
     const s = runScript("2ND STAT CLR_WORK", from);
-    expect(s.ws.stat).toEqual({ ...STAT_DEFAULTS, marks: {} });
+    expect(s.ws.stat).toEqual({ ...STAT_DEFAULTS, points: [{ x: 1, y: 2 }, { x: 2, y: 3 }], marks: {} });
     expect(lcd("2ND STAT CLR_WORK", from)).toBe("LIN");
   });
 });

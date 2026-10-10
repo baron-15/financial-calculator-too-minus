@@ -20,10 +20,10 @@ describe.runIf(ready)("AMORT golden values", () => {
     expect(lcd(p1to9 + "↓ ↓ ↓")).toBe("INT= -5,490.80 *");
   });
 
-  it("CPT on P2 advances to 10–18", () => {
+  it("CPT on P2 advances to 10–18 (both show ◄, guidebook p. 35)", () => {
     const next = p1to9 + "CPT ";
-    expect(lcd(next + "↑")).toBe("P1= 10.00");
-    expect(lcd(next)).toBe("P2= 18.00");
+    expect(lcd(next + "↑")).toBe("P1= 10.00 ◄");
+    expect(lcd(next)).toBe("P2= 18.00 ◄");
     expect(lcd(next + "↓")).toBe("BAL= 117,807.03 *");
     expect(lcd(next + "↓ ↓")).toBe("PRN= -1,121.60 *");
     expect(lcd(next + "↓ ↓ ↓")).toBe("INT= -5,440.57 *");

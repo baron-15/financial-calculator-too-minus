@@ -104,9 +104,9 @@ describe("DEPR worksheet: entry and YR advance", () => {
     expect(lcd("2ND DEPR ↓ ↓ 12.99 ENTER")).toBe("M01= 12.99 ◄");
   });
 
-  it("CPT on YR adds 1, without a *", () => {
-    expect(lcd("2ND DEPR ↓ ↓ ↓ ↓ ↓ CPT")).toBe("YR= 2.00");
-    expect(lcd("2ND DEPR ↓ ↓ ↓ ↓ ↓ 4 ENTER CPT CPT")).toBe("YR= 6.00");
+  it("CPT on YR adds 1 and shows ◄, without a * (guidebook p. 53: \"YR= 2.00 ◄\")", () => {
+    expect(lcd("2ND DEPR ↓ ↓ ↓ ↓ ↓ CPT")).toBe("YR= 2.00 ◄");
+    expect(lcd("2ND DEPR ↓ ↓ ↓ ↓ ↓ 4 ENTER CPT CPT")).toBe("YR= 6.00 ◄");
     expect(runScript("2ND DEPR ↓ ↓ ↓ ↓ ↓ CPT").ws.depr.year).toBe(2);
   });
 
@@ -114,10 +114,12 @@ describe("DEPR worksheet: entry and YR advance", () => {
     expect(runScript("2ND DEPR ↓ 5 ENTER CPT").ws.depr).toMatchObject({ life: 5, year: 1 });
   });
 
-  it("CLR WORK restores DEPR_DEFAULTS", () => {
-    const s = runScript("2ND DEPR SET SET 150 ENTER ↓ 10 ENTER ↓ ↓ 500 ENTER CLR_WORK");
-    expect(s.ws.depr).toEqual({ ...DEPR_DEFAULTS, marks: {} });
-    expect(lcd("2ND DEPR SET SET CLR_WORK")).toBe("SL");
+  it("CLR WORK clears LIF, YR, CST and SAL without affecting the method (guidebook p. 51)", () => {
+    const s = runScript("2ND DEPR SET SET 150 ENTER ↓ 10 ENTER ↓ 4 ENTER ↓ 500 ENTER ↓ 50 ENTER ↓ 3 ENTER CLR_WORK");
+    const { life, year, cost, salvage } = DEPR_DEFAULTS;
+    expect(s.ws.depr).toMatchObject({ method: "DB", dbRate: 150, m01: 4, life, year, cost, salvage });
+    expect(lcd("2ND DEPR SET SET CLR_WORK")).toBe("DB= 200.00");
+    expect(lcd("2ND DEPR SET CLR_WORK")).toBe("SYD");
   });
 });
 
@@ -136,7 +138,7 @@ describe.runIf(deprReady)("DEPR worksheet: golden values", () => {
   });
 
   it("CPT on YR advances to year 2 → DEP 31,746.03", () => {
-    expect(lcd(`${inputs} CPT`)).toBe("YR= 2.00");
+    expect(lcd(`${inputs} CPT`)).toBe("YR= 2.00 ◄");
     expect(lcd(`${inputs} CPT ↓`)).toBe("DEP= 31,746.03 *");
     expect(lcd(`${inputs} CPT ↓ ↓`)).toBe("RBV= 943,121.69 *");
   });

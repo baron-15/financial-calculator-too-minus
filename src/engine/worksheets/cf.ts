@@ -3,10 +3,16 @@
  * CF: CFo, C01/F01 … C24/F24 (standard BA II Plus: up to 24 groups, F 0.5–9,999, default 1).
  * INS = 2ND ↓ inserts before the current group; DEL = 2ND ↑ deletes it (docs/SPEC.md §5, §12).
  *
+ * After the last group, one empty Cnn/Fnn slot (C 0.00, F 1.00) is listed so a new group can be keyed in.
+ * ENTER on its Cnn creates the group with F = 1; ENTER on its Fnn creates a zero group with that frequency.
+ * The guidebook's lease example (p. 44) only scrolls past the zero groups: "↓ C01= 0.00", "↓ 3 ENTER
+ * F01= 3.00". With 24 groups the slot is not listed, and INS (which would make a 25th group) is Error 4.
+ *
+ * The ◄ mark: CFo shows it once entered; every Cnn/Fnn of an existing group shows it (guidebook p. 42:
+ * "↓ F01= 1.00 ◄" right after entering C01, "↑ C03= 4,000.00 ◄", and an INS'd group's "F02= 1.00 ◄").
+ * The empty slot shows none (p. 42: "2ND DEL → C03= 0.00").
+ *
  * Decisions where the guidebook is silent or ambiguous:
- * - After the last group, one empty "Cnn" slot (0.00) is listed so a new group can be keyed in;
- *   ENTER there creates the group with F = 1. With 24 groups the slot is not listed, and INS
- *   (which would make a 25th group) is Error 4.
  * - CLR WORK in CF clears CFo and every group but keeps the NPV worksheet's I. CLR WORK in NPV
  *   resets I and NPV to 0 (cash flows kept); CLR WORK in IRR resets IRR to 0.
  * - NPV and IRR keep their last value after an input changes, but lose the "*" (npvValid /
@@ -30,6 +36,8 @@ export interface CfData {
   npvValid: boolean;
   /** `irr` was computed from the current cash flows (shows "*"). */
   irrValid: boolean;
+  /** CFo was keyed in with ENTER (shows ◄). */
+  cf0Entered?: boolean;
 }
 export const CF_DEFAULTS: CfData = { cf0: 0, groups: [], i: 0, npv: 0, irr: 0, npvValid: false, irrValid: false };
 export const MAX_CF_GROUPS = 24;
@@ -68,7 +76,10 @@ function cfVars(s: CalcState): WsVar[] {
   groups.forEach((_, j) => {
     vars.push({ id: cId(j), label: `C${nn(j)}`, kind: "enter" }, { id: fId(j), label: `F${nn(j)}`, kind: "enter" });
   });
-  if (groups.length < MAX_CF_GROUPS) vars.push({ id: cId(groups.length), label: `C${nn(groups.length)}`, kind: "enter" });
+  const j = groups.length;
+  if (j < MAX_CF_GROUPS) {
+    vars.push({ id: cId(j), label: `C${nn(j)}`, kind: "enter" }, { id: fId(j), label: `F${nn(j)}`, kind: "enter" });
+  }
   return vars;
 }
 
@@ -85,7 +96,7 @@ export const cfWorksheet: WorksheetDef = {
   enter: (s, id, x) => {
     const ref = parseVar(id);
     if (!ref) return s;
-    if (ref.kind === "cf0") return withFlows(s, { cf0: x });
+    if (ref.kind === "cf0") return withCf(withFlows(s, { cf0: x }), { cf0Entered: true });
     const groups = [...s.ws.cf.groups];
     const g = groups[ref.j];
     if (ref.kind === "c") {
@@ -93,14 +104,15 @@ export const cfWorksheet: WorksheetDef = {
       else if (ref.j === groups.length && ref.j < MAX_CF_GROUPS) groups.push({ amount: x, freq: 1 });
       else throw new CalcError(4);
     } else {
-      if (!g) return s;
       if (!(x >= MIN_FREQ && x <= MAX_FREQ)) throw new CalcError(4);
-      groups[ref.j] = { ...g, freq: x };
+      if (g) groups[ref.j] = { ...g, freq: x };
+      else if (ref.j === groups.length && ref.j < MAX_CF_GROUPS) groups.push({ amount: 0, freq: x });
+      else return s;
     }
     return withFlows(s, { groups });
   },
   // 2ND INS on Cnn/Fnn: insert C = 0, F = 1 before the current group and show its Cnn.
-  // On the empty trailing slot this appends a zero group. No-op on CFo.
+  // On the empty trailing slot (Cnn or Fnn) this appends a zero group. No-op on CFo.
   ins: (s, id) => {
     const ref = parseVar(id);
     if (!ref || ref.kind === "cf0") return [s, id];
@@ -118,7 +130,13 @@ export const cfWorksheet: WorksheetDef = {
     if (!ref || ref.kind === "cf0" || ref.j >= groups.length) return [s, id];
     return [withFlows(s, { groups: groups.filter((_, k) => k !== ref.j) }), cId(ref.j)];
   },
-  clearWork: (s) => withFlows(s, { cf0: CF_DEFAULTS.cf0, groups: [] }),
+  status: (s, id) => {
+    const ref = parseVar(id);
+    if (!ref) return null;
+    if (ref.kind === "cf0") return s.ws.cf.cf0Entered ? "entered" : null;
+    return ref.j < s.ws.cf.groups.length ? "entered" : null;
+  },
+  clearWork: (s) => withCf(withFlows(s, { cf0: CF_DEFAULTS.cf0, groups: [] }), { cf0Entered: false }),
 };
 
 export const npvWorksheet: WorksheetDef = {

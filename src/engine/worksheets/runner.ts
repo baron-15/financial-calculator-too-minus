@@ -77,7 +77,8 @@ export function worksheetKey(s: CalcState, a: Action): CalcState | null {
       let j = index + dir;
       if (j < 0 || j >= vars.length) {
         if (def.wraps === false) return commitEntry(s);
-        j = (j + vars.length) % vars.length;
+        const to = dir > 0 && def.wrapDownTo ? vars.findIndex((x) => x.id === def.wrapDownTo) : -1;
+        j = to >= 0 ? to : (j + vars.length) % vars.length;
       }
       const target = vars[j]!;
       return showVar({ ...s, arith: { ...s.arith, entry: null } }, def, target);

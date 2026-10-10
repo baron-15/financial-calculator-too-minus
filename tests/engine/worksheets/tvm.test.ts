@@ -29,12 +29,15 @@ describe("TVM registers: store", () => {
     expect(lcd("2ND P/Y 12 ENTER 2ND QUIT 30 2ND xP/Y N")).toBe("N= 360.00 ◄");
   });
 
-  it("a TVM key inside another worksheet stores the typed value and returns to standard mode", () => {
+  it("a TVM key inside another worksheet stores the typed value and stays in the worksheet (guidebook p. 22)", () => {
+    // "In worksheet modes the calculator displays only the value you enter or recall, although any
+    // variable label previously displayed remains displayed" — and without the "=" indicator.
     const s = runScript("2ND P/Y 25 N");
-    expect(s.mode.kind).toBe("calc");
+    expect(s.mode).toMatchObject({ kind: "ws", id: "PY" });
     expect(s.ws.tvm.n).toBe(25);
     expect(s.ws.tvm.py).toBe(1);
-    expect(lcd("2ND P/Y 25 N")).toBe("N= 25.00 ◄");
+    expect(lcd("2ND P/Y 25 N")).toBe("P/Y 25.00");
+    expect(lcd("2ND P/Y 25 N 2ND QUIT RCL N")).toBe("N= 25.00");
   });
 });
 

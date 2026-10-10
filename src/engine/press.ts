@@ -84,7 +84,16 @@ function dispatch(s: CalcState, a: Action): CalcState {
   if (s.mode.kind === "ws") {
     const w = worksheetKey(s, a);
     if (w) return w;
+    // A TVM key inside another worksheet stores the displayed value and returns to standard mode.
+    if (TVM_KEYS.has(a)) {
+      const k = a as TvmKey;
+      const calc: CalcState = { ...s, mode: { kind: "calc" } };
+      const next = tvmStore(commitEntry(calc), k, currentValue(s));
+      const shown = labelled(setX(next, tvmValue(next, k)), TVM_LABEL[k], false);
+      return { ...shown, view: { ...shown.view, entered: true } };
+    }
   } else {
+    if (a === "XPY") return { ...setX(s, currentValue(s) * s.ws.tvm.py), view: { ...VIEW_DEFAULTS } };
     if (a === "CPT") return { ...commitEntry(s), mods: { ...s.mods, compute: true } };
     if (TVM_KEYS.has(a)) {
       const k = a as TvmKey;

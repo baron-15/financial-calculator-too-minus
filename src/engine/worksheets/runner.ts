@@ -74,10 +74,13 @@ export function worksheetKey(s: CalcState, a: Action): CalcState | null {
       return { ...next, arith: { ...next.arith, entry: null }, view: { ...next.view, assigned: true, computed: false, entered: true } };
     }
     case "CPT": {
-      if (v.kind !== "compute" && v.kind !== "enterCompute") return s;
-      if (!def.compute) return s;
+      if (!def.compute || v.kind === "setting" || v.kind === "auto") return s;
       const next = def.compute(commitEntry(s), v.id);
-      return { ...next, view: { ...next.view, assigned: true, computed: true, entered: false } };
+      // CPT on an enter-only variable is an "advance" (AMORT P1/P2 next range, DEPR YR + 1), not a computation.
+      const computed = v.kind === "compute" || v.kind === "enterCompute";
+      const nv = def.vars(next).find((x) => x.id === (next.mode.kind === "ws" ? next.mode.varId : v.id)) ?? v;
+      const shown = nv.id !== v.id ? showVar(next, def, nv, computed) : next;
+      return { ...shown, view: { ...shown.view, assigned: true, computed, entered: false } };
     }
     case "SET": {
       if (v.kind !== "setting" || !def.set) return s;

@@ -2,7 +2,7 @@
  * "Explain this result" box: streams an AI explanation for an ExplainRequest and renders it as Markdown
  * with KaTeX math. Used by ExplainPanel (emulator) and by the TVM / Cash Flow tool pages.
  */
-import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, lazy, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ExplainError, displayText, isAbortError, streamExplanation } from "./client";
 import { requestKey, type ExplainRequest } from "./request";
 import "./explain.css";
@@ -16,7 +16,7 @@ export interface ExplainViewProps {
   request: ExplainRequest | null;
   /** Shown instead of the button's subject line when `request` is null. */
   hint?: ReactNode;
-  /** Heading text; pass null to omit the heading. */
+  /** Heading text; pass null to omit the heading when the surrounding card already has one. */
   title?: string | null;
   /** Injectable for tests and storybooks. */
   fetchImpl?: typeof fetch;
@@ -61,14 +61,23 @@ export function ExplainView({ request, hint, title = "Step-by-step explanation",
     [fetchImpl],
   );
 
+  // With a heading this is its own labelled section; without one (title={null}) it sits inside a card
+  // that already has the heading and the section landmark, so it renders as a plain div.
+  const headingId = useId();
+  const Root = title ? "section" : "div";
+
   const stop = () => controller.current?.abort();
   const streaming = status === "streaming";
   const stale = subject !== null && requestKey(subject) !== requestKey(request);
   const shown = displayText(text);
 
   return (
-    <section className="explain-root space-y-3 text-sm" aria-label={title ?? "Step-by-step explanation"}>
-      {title && <h2 className="text-base font-semibold">{title}</h2>}
+    <Root className="explain-root space-y-3 text-sm" {...(title ? { "aria-labelledby": headingId } : {})}>
+      {title && (
+        <h2 id={headingId} className="text-base font-semibold">
+          {title}
+        </h2>
+      )}
 
       {request ? (
         <p className="text-[var(--muted)]">
@@ -125,6 +134,6 @@ export function ExplainView({ request, hint, title = "Step-by-step explanation",
       )}
 
       <p className="text-xs text-[var(--muted)]">AI explanations can be wrong; verify with the formulas.</p>
-    </section>
+    </Root>
   );
 }

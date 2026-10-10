@@ -47,7 +47,7 @@ export function PanelBoard({ state, log, explainKeys, onClearTape }: PanelBoardP
       place: "wide",
       node: (
         <PanelCard id="explain" title="Explain this calculation">
-          <ExplainPanel state={state} keystrokes={explainKeys} />
+          <ExplainPanel state={state} keystrokes={explainKeys} title={null} />
         </PanelCard>
       ),
     },

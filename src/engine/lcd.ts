@@ -74,7 +74,7 @@ export function renderLcd(s: CalcState): Lcd {
     ann.down = vars.length > 1 && (def.wraps !== false || index < vars.length - 1);
     ann.enter = v.kind === "enter" || v.kind === "enterCompute";
     ann.compute = s.mods.compute || v.kind === "compute" || v.kind === "enterCompute";
-    ann.set = v.kind === "setting";
+    ann.set = v.kind === "setting" || !!v.settable;
     ann.ins = !!def.ins;
     ann.del = !!def.del;
     const value = s.view.text ?? entryText ?? formatWsValue(s, def.value(s, v.id));

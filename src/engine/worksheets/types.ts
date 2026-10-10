@@ -27,6 +27,8 @@ export interface WsVar {
   kind: VarKind;
   /** How keyed values are interpreted. Default "number". */
   input?: "number" | "date" | "integer";
+  /** Also responds to 2ND SET even though kind is not "setting" (e.g. DEPR "DB 200": enter DB% or SET method). */
+  settable?: boolean;
 }
 
 export type WsValue =

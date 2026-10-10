@@ -83,7 +83,7 @@ export function worksheetKey(s: CalcState, a: Action): CalcState | null {
       return { ...shown, view: { ...shown.view, assigned: true, computed, entered: false } };
     }
     case "SET": {
-      if (v.kind !== "setting" || !def.set) return s;
+      if (!def.set || (v.kind !== "setting" && !v.settable)) return s;
       const next = def.set(s, v.id);
       return { ...next, view: { ...next.view, computed: false } };
     }

@@ -36,7 +36,7 @@ Items marked *(not from TI)* are standard finance conventions we chose because t
 | 1 | Overflow (>9.9999999999999E99), divide by zero, statistics with all X (or Y) identical |
 | 2 | Invalid argument: x! of a non-integer or outside 0–69; LN of x ≤ 0; yˣ with y < 0 and non-integer x; √ of a negative; P2 < P1; SAL > CST |
 | 3 | More than 15 parenthesis levels or more than 8 pending operations (AOS) |
-| 4 | Out of range: P1/P2 outside 1–9,999; P/Y or C/Y ≤ 0; Fnn outside range; RV/CPN/PRI ≤ 0; DB%, LIF, YR, CST, SAL out of range; M01 outside 1–13 (exclusive of 13); ICONV C/Y ≤ 0; DEC outside 0–9 |
+| 4 | Out of range: P1/P2 outside 1–9,999; P/Y or C/Y ≤ 0; Fnn outside range; RV or PRI ≤ 0, CPN < 0 (CPN = 0 allowed for zero-coupon bonds); DB%, LIF, YR, CST, SAL out of range; M01 outside 1–13 (exclusive of 13); ICONV C/Y ≤ 0; DEC outside 0–9 |
 | 5 | No solution: I/Y when FV, N×PMT and PV all have the same sign; IRR with no sign change; LN input ≤ 0 inside TVM |
 | 6 | Invalid date; RDT ≤ SDT in BOND |
 | 7 | Iteration limit exceeded (I/Y, IRR, YLD) |
@@ -340,7 +340,7 @@ All of these come from `renderLcd()` in `src/engine/lcd.ts`.
 | PROFIT (2ND 3) | CST, SEL, MAR (enterCompute) | |
 | BRKEVN (2ND 6) | FC, VC, P, PFT, Q (enterCompute) | |
 | MEM (2ND 0) | M0 … M9 (enter) | |
-| DATE (2ND 1) | DT1, DT2 (enterCompute, date), DBD (enterCompute), ACT/360 (setting) | Under 360 only DBD can be computed. A computed date shows the weekday, e.g. `DT2= 9-5-2026 SAT`. Dates range from 1-1-1980 to 12-31-2079 |
+| DATE (2ND 1) | DT1, DT2 (enterCompute, date), DBD (enterCompute), ACT/360 (setting) | Under 360 only DBD can be computed. A computed date shows the weekday, e.g. `DT2= 9-05-2026 SAT` (the day is zero-padded, as in the guidebook's `9-04-2003`). Dates range from 1-1-1980 to 12-31-2079 |
 | FORMAT (2ND .) | DEC (enter, 0–9), DEG/RAD (setting), US/EUR date (setting), US/EUR separator (setting), Chn/AOS (setting) | |
 
 ## 13. Standard-calculator behavior

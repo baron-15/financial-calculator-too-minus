@@ -81,7 +81,7 @@ export function deprInput(d: DeprData, dec: number): DeprInput & { dec: number }
 
 /** Run finance.depreciate and round to DEC (idempotent if finance already rounds). DEC 9 = floating: no rounding. */
 export function computeDepr(d: DeprData, dec: number): DeprResult {
-  const r = depreciate(deprInput(d, dec));
+  const r = depreciate(deprInput(d, dec), dec);
   const rnd = (x: number) => (dec === 9 ? x : roundTo(x, dec));
   return { dep: rnd(r.dep), rbv: rnd(r.rbv), rdv: rnd(r.rdv) };
 }

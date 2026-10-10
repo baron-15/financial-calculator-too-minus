@@ -84,22 +84,22 @@ describe.runIf(dateReady)("DATE worksheet: golden values", () => {
   });
 
   it("computes DT2 from DT1 + DBD and shows the weekday", () => {
-    expect(lcd("2ND DATE 1.0126 ENTER ↓ ↓ 247 ENTER ↑ CPT")).toBe("DT2= 9-5-2026 SAT *");
+    expect(lcd("2ND DATE 1.0126 ENTER ↓ ↓ 247 ENTER ↑ CPT")).toBe("DT2= 9-05-2026 SAT *");
     expect(runScript("2ND DATE 1.0126 ENTER ↓ ↓ 247 ENTER ↑ CPT").ws.date.dt2).toEqual({ y: 2026, m: 9, d: 5 });
     // The weekday stays with the computed value when navigating back.
-    expect(lcd("2ND DATE 1.0126 ENTER ↓ ↓ 247 ENTER ↑ CPT ↓ ↑")).toBe("DT2= 9-5-2026 SAT *");
+    expect(lcd("2ND DATE 1.0126 ENTER ↓ ↓ 247 ENTER ↑ CPT ↓ ↑")).toBe("DT2= 9-05-2026 SAT *");
   });
 
   it("computes DT1 from DT2 − DBD", () => {
-    expect(lcd("2ND DATE ↓ 9.0526 ENTER ↓ 247 ENTER ↑ ↑ CPT")).toBe("DT1= 1-1-2026 THU *");
+    expect(lcd("2ND DATE ↓ 9.0526 ENTER ↓ 247 ENTER ↑ ↑ CPT")).toBe("DT1= 1-01-2026 THU *");
   });
 
   it("an input change drops the * and the weekday from a computed date", () => {
-    expect(lcd("2ND DATE 1.0126 ENTER ↓ ↓ 247 ENTER ↑ CPT ↓ 10 ENTER ↑")).toBe("DT2= 9-5-2026");
+    expect(lcd("2ND DATE 1.0126 ENTER ↓ ↓ 247 ENTER ↑ CPT ↓ 10 ENTER ↑")).toBe("DT2= 9-05-2026");
   });
 
   it("entered dates show without a weekday", () => {
-    expect(lcd("2ND DATE 1.0126 ENTER")).toBe("DT1= 1-1-2026 ◄");
+    expect(lcd("2ND DATE 1.0126 ENTER")).toBe("DT1= 1-01-2026 ◄");
   });
 
   it("an invalid date is Error 6", () => {

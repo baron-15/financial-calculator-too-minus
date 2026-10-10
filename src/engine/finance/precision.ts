@@ -46,7 +46,7 @@ export function roundDec(x: number, dec: number): number {
  * otherwise round to 13 significant digits and normalise -0 to 0.
  */
 export function result13(x: number): number {
-  if (!Number.isFinite(x) || Math.abs(x) > MAX_MAGNITUDE) throw new CalcError(1);
   const r = round13(x);
+  if (!Number.isFinite(r) || Math.abs(r) > MAX_MAGNITUDE) throw new CalcError(1);
   return r === 0 ? 0 : r;
 }

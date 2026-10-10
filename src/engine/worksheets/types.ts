@@ -70,4 +70,6 @@ export interface WorksheetDef {
   status?(s: CalcState, varId: string): "entered" | "computed" | null;
   /** Whether ↑ from the first / ↓ from the last variable wraps around. Default true. */
   wraps?: boolean;
+  /** Where ↓ from the last variable goes when it wraps (default: the first variable). DEPR returns to YR. */
+  wrapDownTo?: string;
 }

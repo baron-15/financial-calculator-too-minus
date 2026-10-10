@@ -5,15 +5,21 @@
  * - method row: a setting showing SL / SYD / SLF / DBF; for DB and DBX it instead shows the DB% (label "DB" or
  *   "DBX", value e.g. 200.00), which is enterable and also `settable`, so 2ND SET still cycles the method.
  *   2ND SET cycles SL → SYD → DB → DBX → (SLF → DBF, only with the EUR date or separator format) → SL.
- * - LIF, M01, DT1 (SLF only, date), CST, SAL, YR (enter). CPT on YR adds 1 (an "advance").
+ * - LIF, M01, DT1 (SLF only, date), CST, SAL, YR (enter). CPT on YR adds 1 (an "advance") and shows ◄
+ *   (guidebook p. 53: "YR= 2.00 ◄").
  * - DEP, RBV, RDV (auto, via finance.depreciate; rounded to DEC as the device does).
+ * - ↓ from RDV returns to YR, not to the method (guidebook p. 52: "If RDV is displayed, you can press ↓ to
+ *   return to the year to compute (YR) variable"; the p. 53 example does exactly that). ↑ from the method
+ *   row still wraps to RDV.
+ * - 2ND CLR WORK clears only LIF, YR, CST and SAL (guidebook p. 51: "without affecting the depreciation
+ *   method"); the method, DB%, M01 and DT1 are kept.
  */
 import { CalcError, isCalcError } from "../errors";
 import { parseDateEntry, type CalDate } from "../finance/daycount";
 import { depreciate, type DeprInput, type DeprMethod, type DeprResult } from "../finance/depr";
 import { roundTo } from "../finance/precision";
 import type { CalcState } from "../state";
-import { markEntered, markOf, unmark, type Marks } from "./simple";
+import { markEntered, markOf, type Marks } from "./simple";
 import type { WorksheetDef, WsValue, WsVar } from "./types";
 
 export interface DeprData {
@@ -157,7 +163,7 @@ export const deprWorksheet: WorksheetDef = {
   compute: (s, id) => {
     if (id !== "year") return s;
     const d = get(s);
-    return refresh(put(s, { ...d, year: d.year + 1, marks: unmark(d.marks, "year") }));
+    return refresh(put(s, { ...d, year: d.year + 1, marks: markEntered(d.marks, "year") }));
   },
   auto: (s, id) => {
     if (id !== "dep" && id !== "rbv" && id !== "rdv") return s;
@@ -176,5 +182,12 @@ export const deprWorksheet: WorksheetDef = {
     if (id === "method" && !usesDbRate(get(s).method)) return null;
     return markOf(get(s).marks, id);
   },
-  clearWork: (s) => put(s, { ...DEPR_DEFAULTS, marks: {} }),
+  clearWork: (s) => {
+    const d = get(s);
+    const { life, year, cost, salvage, dep, rbv, rdv } = DEPR_DEFAULTS;
+    const marks: Marks = {};
+    for (const id of ["method", "m01", "dt1"]) if (d.marks?.[id]) marks[id] = d.marks[id];
+    return refresh(put(s, { ...d, life, year, cost, salvage, dep, rbv, rdv, marks }));
+  },
+  wrapDownTo: "year",
 };

@@ -19,7 +19,7 @@ describe("AMORT: P1 and P2", () => {
   it("stores entered values", () => {
     expect(lcd("2ND AMORT 13 ENTER")).toBe("P1= 13.00 ◄");
     expect(lcd("2ND AMORT 13 ENTER ↓ 24 ENTER")).toBe("P2= 24.00 ◄");
-    expect(lcd("2ND AMORT 13 ENTER ↓ 24 ENTER ↑")).toBe("P1= 13.00");
+    expect(lcd("2ND AMORT 13 ENTER ↓ 24 ENTER ↑")).toBe("P1= 13.00 ◄"); // ◄ persists (guidebook p. 35)
     expect(runScript("2ND AMORT 13 ENTER ↓ 24 ENTER").ws.amort).toMatchObject({ p1: 13, p2: 24 });
   });
 
@@ -37,7 +37,7 @@ describe("AMORT: P1 and P2", () => {
   });
 
   it("an out-of-range entry leaves the stored value alone", () => {
-    expect(lcd("2ND AMORT 5 ENTER 0 ENTER CE|C")).toBe("P1= 5.00");
+    expect(lcd("2ND AMORT 5 ENTER 0 ENTER CE|C")).toBe("P1= 5.00 ◄");
     expect(runScript("2ND AMORT 5 ENTER 0 ENTER").ws.amort.p1).toBe(5);
   });
 
@@ -53,8 +53,8 @@ describe("AMORT: P1 and P2", () => {
   it("values persist after QUIT and re-entering", () => {
     const s = "2ND AMORT 13 ENTER ↓ 24 ENTER 2ND QUIT ";
     expect(lcd(s)).toBe("0.00");
-    expect(lcd(s + "2ND AMORT")).toBe("P1= 13.00");
-    expect(lcd(s + "2ND AMORT ↓")).toBe("P2= 24.00");
+    expect(lcd(s + "2ND AMORT")).toBe("P1= 13.00 ◄");
+    expect(lcd(s + "2ND AMORT ↓")).toBe("P2= 24.00 ◄");
   });
 
   it("CLR WORK resets P1 and P2 to 1 without touching the TVM registers", () => {
@@ -72,14 +72,14 @@ describe("AMORT: P1 and P2", () => {
 describe("AMORT: CPT on P1 or P2 advances to the next range", () => {
   const range12 = "2ND AMORT 1 ENTER ↓ 12 ENTER ";
 
-  it("on P2: 1–12 → 13–24, staying on P2 with no * or ◄", () => {
-    expect(lcd(range12 + "CPT")).toBe("P2= 24.00");
-    expect(lcd(range12 + "CPT ↑")).toBe("P1= 13.00");
+  it("on P2: 1–12 → 13–24, staying on P2; the new values show ◄, not * (guidebook p. 35)", () => {
+    expect(lcd(range12 + "CPT")).toBe("P2= 24.00 ◄");
+    expect(lcd(range12 + "CPT ↑")).toBe("P1= 13.00 ◄");
   });
 
   it("on P1: 1–12 → 13–24, staying on P1", () => {
-    expect(lcd(range12 + "↑ CPT")).toBe("P1= 13.00");
-    expect(lcd(range12 + "↑ CPT ↓")).toBe("P2= 24.00");
+    expect(lcd(range12 + "↑ CPT")).toBe("P1= 13.00 ◄");
+    expect(lcd(range12 + "↑ CPT ↓")).toBe("P2= 24.00 ◄");
   });
 
   it("repeats: 1–12 → 13–24 → 25–36", () => {

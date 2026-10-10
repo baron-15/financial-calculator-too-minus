@@ -29,7 +29,7 @@ describe("AMORT auto variables (mocked math)", () => {
     expect(lcd(range + "↓")).toBe("BAL= 118,928.63 *");
     expect(lcd(range + "↓ ↓")).toBe("PRN= -1,071.37 *");
     expect(lcd(range + "↓ ↓ ↓")).toBe("INT= -5,490.80 *");
-    expect(lcd(range + "↓ ↓ ↓ ↓")).toBe("P1= 1.00");
+    expect(lcd(range + "↓ ↓ ↓ ↓")).toBe("P1= 1.00 ◄"); // entered values keep ◄ (guidebook p. 35)
   });
 
   it("wraps upward from P1 to INT", () => {
@@ -42,7 +42,7 @@ describe("AMORT auto variables (mocked math)", () => {
   });
 
   it("stores all three results when any one is displayed", () => {
-    expect(runScript(range + "↓").ws.amort).toEqual({ p1: 1, p2: 9, ...RESULT });
+    expect(runScript(range + "↓").ws.amort).toMatchObject({ p1: 1, p2: 9, ...RESULT });
   });
 
   it("passes the TVM registers, P1, P2 and DEC to amortize", () => {
@@ -81,6 +81,6 @@ describe("AMORT auto variables (mocked math)", () => {
       throw new CalcError(1);
     });
     expect(lcd(range + "↓")).toBe("Error 1");
-    expect(lcd(range + "↓ CE|C")).toBe("P2= 9.00");
+    expect(lcd(range + "↓ CE|C")).toBe("P2= 9.00 ◄");
   });
 });

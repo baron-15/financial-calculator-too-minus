@@ -151,6 +151,8 @@ export const deprWorksheet: WorksheetDef = {
         return refresh(put(s, { ...d, dt1: parseDateEntry(x, s.settings.dateFormat), marks }));
       case "cost":
       case "salvage":
+        // Guidebook p. 79: "the value entered for … CST < 0; SAL < 0" is Error 4.
+        if (!(x >= 0)) throw new CalcError(4);
         return refresh(put(s, { ...d, [id]: x, marks }));
       case "year":
         if (!(Number.isInteger(x) && x >= 1)) throw new CalcError(4);

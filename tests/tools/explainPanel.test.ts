@@ -1,0 +1,26 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import { initialState, parseScript, type CalcState } from "../../src/engine";
+import { ExplainPanel } from "../../src/ui/explain/ExplainPanel";
+
+const render = (state: CalcState, keys = parseScript("")) => renderToStaticMarkup(createElement(ExplainPanel, { state, keystrokes: keys }));
+
+describe("ExplainPanel (props contract: state + keystrokes)", () => {
+  it("shows a hint and a disabled button when nothing is computed", () => {
+    const h = render(initialState());
+    expect(h).toContain("Compute something (e.g. CPT FV) to get a step-by-step explanation");
+    expect(h).toMatch(/<button[^>]*disabled=""[^>]*>Explain this result<\/button>/);
+    expect(h).toContain("AI explanations can be wrong; verify with the formulas.");
+  });
+
+  it("enables the button for a computed LCD value and names the result", () => {
+    const s = initialState();
+    s.arith.x = 162.8894627;
+    s.view = { ...s.view, label: "FV", assigned: true, computed: true };
+    const h = render(s, parseScript("2ND CLR_TVM 10 N 5 I/Y 100 +|- PV CPT FV"));
+    expect(h).toContain("FV = 162.89");
+    expect(h).toMatch(/<button[^>]*>Explain this result<\/button>/);
+    expect(h).not.toMatch(/disabled=""[^>]*>Explain this result/);
+  });
+});

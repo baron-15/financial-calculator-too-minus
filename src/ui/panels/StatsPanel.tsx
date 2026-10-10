@@ -18,7 +18,10 @@ export function StatsPanel({ state, active, current }: { state: CalcState; activ
       return null;
     }
   }, [st.points, st.model]);
-  const cur = (label: string) => active && current === label;
+  const ws = state.mode.kind === "ws" ? state.mode.id : null;
+  const cur = (id: string) => active && current === id;
+  const data = (id: string) => ws === "DATA" && cur(id);
+  const stat = (id: string) => ws === "STAT" && cur(id);
 
   return (
     <PanelCard id="stats" title="Statistics" active={active} meta={`${st.model} · ${st.points.length} of ${MAX_DATA_POINTS} points`}>
@@ -41,8 +44,8 @@ export function StatsPanel({ state, active, current }: { state: CalcState; activ
             <tbody>
               {st.points.map((p, i) => {
                 const n = pad(i + 1);
-                const x = cur(`X${n}`);
-                const y = cur(`Y${n}`);
+                const x = data(`x${n}`);
+                const y = data(`y${n}`);
                 return (
                   <tr key={i} className={x || y ? "is-current" : undefined}>
                     <th scope="row">{n}</th>
@@ -64,18 +67,19 @@ export function StatsPanel({ state, active, current }: { state: CalcState; activ
         <p className="text-xs text-[var(--muted)]">Results appear here once the statistics engine can compute them for this data.</p>
       ) : (
         <Rows>
-          <Row label="n" value={whole(state, result?.n)} current={cur("n")} />
-          <Row label="x̄" hint="mean" value={num(state, result?.xMean)} current={cur("x̄")} />
-          <Row label="Sx" hint="sample SD" value={num(state, result?.sx)} current={cur("Sx")} />
-          <Row label="σx" hint="population SD" value={num(state, result?.sigmaX)} current={cur("σx")} />
+          <Row label="Method" value={st.model} current={stat("model")} />
+          <Row label="n" value={whole(state, result?.n)} current={stat("n")} />
+          <Row label="x̄" hint="mean" value={num(state, result?.xMean)} current={stat("xMean")} />
+          <Row label="Sx" hint="sample SD" value={num(state, result?.sx)} current={stat("sx")} />
+          <Row label="σx" hint="population SD" value={num(state, result?.sigmaX)} current={stat("sigmaX")} />
           {!oneVar && (
             <>
-              <Row label="ȳ" value={num(state, result?.yMean)} current={cur("ȳ")} />
-              <Row label="Sy" value={num(state, result?.sy)} current={cur("Sy")} />
-              <Row label="σy" value={num(state, result?.sigmaY)} current={cur("σy")} />
-              <Row label="a" hint="intercept" value={num(state, result?.a)} current={cur("a")} />
-              <Row label="b" hint="slope" value={num(state, result?.b)} current={cur("b")} />
-              <Row label="r" hint="correlation" value={num(state, result?.r)} current={cur("r")} />
+              <Row label="ȳ" value={num(state, result?.yMean)} current={stat("yMean")} />
+              <Row label="Sy" value={num(state, result?.sy)} current={stat("sy")} />
+              <Row label="σy" value={num(state, result?.sigmaY)} current={stat("sigmaY")} />
+              <Row label="a" hint="intercept" value={num(state, result?.a)} current={stat("a")} />
+              <Row label="b" hint="slope" value={num(state, result?.b)} current={stat("b")} />
+              <Row label="r" hint="correlation" value={num(state, result?.r)} current={stat("r")} />
             </>
           )}
         </Rows>

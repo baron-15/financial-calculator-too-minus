@@ -1,0 +1,65 @@
+/* Explainer panel: tokens follow the app's light / OS-dark / data-theme="dark" scheme (see src/index.css). */
+.explain-root {
+  --explain-error: #b42318;
+  --explain-surface: color-mix(in srgb, var(--panel-bg) 92%, var(--page-fg) 8%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .explain-root {
+    --explain-error: #ff8a80;
+  }
+}
+:root[data-theme="dark"] .explain-root {
+  --explain-error: #ff8a80;
+}
+
+.explain-md {
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.explain-md > * + * {
+  margin-top: 0.6em;
+}
+.explain-md strong {
+  font-weight: 600;
+}
+.explain-md h1,
+.explain-md h2,
+.explain-md h3,
+.explain-md h4 {
+  font-weight: 600;
+  margin-top: 0.9em;
+}
+.explain-md ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.explain-md ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+.explain-md code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--explain-surface);
+  border-radius: 4px;
+  padding: 0 0.25em;
+}
+.explain-md a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.explain-md hr {
+  border-color: var(--panel-border);
+}
+/* Long display equations scroll inside their own box instead of widening the page. */
+.explain-md .katex-display,
+.tex-block .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25em 0;
+  margin: 0.4em 0;
+}
+.explain-md .katex,
+.tex-block .katex {
+  font-size: 1.05em;
+}

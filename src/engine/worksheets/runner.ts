@@ -40,6 +40,13 @@ function syncX(s: CalcState, def: WorksheetDef, varId: string): CalcState {
   return val.kind === "number" ? { ...s, arith: { ...s.arith, x: val.value, entry: null } } : s;
 }
 
+/** In a worksheet, re-show the current variable's stored value (used after CE|C clears an error). */
+export function redisplayWorksheet(s: CalcState): CalcState {
+  const ws = currentWorksheet(s);
+  if (!ws || !ws.v) return s;
+  return { ...syncX(s, ws.def, ws.v.id), view: { ...s.view, assigned: true } };
+}
+
 /** Make `v` the displayed variable, running auto-compute if needed. */
 function showVar(s: CalcState, def: WorksheetDef, v: WsVar, computed = false): CalcState {
   let next: CalcState = {

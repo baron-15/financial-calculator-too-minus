@@ -9,7 +9,7 @@ import { resolveAction, type Action, type KeyId } from "./keys";
 import { memoryKey } from "./memory";
 import { initialState, VIEW_DEFAULTS, type CalcState } from "./state";
 import { clearTvm, tvmCompute, tvmStore, tvmValue, type TvmKey } from "./worksheets/tvm";
-import { openWorksheet, worksheetKey } from "./worksheets/runner";
+import { openWorksheet, redisplayWorksheet, worksheetKey } from "./worksheets/runner";
 import type { WorksheetId } from "./worksheets/types";
 
 const OPENERS: Partial<Record<Action, WorksheetId>> = {
@@ -29,7 +29,8 @@ export function press(s0: CalcState, key: KeyId): CalcState {
   // While "Error n" is shown only CE|C (clear) and ON|OFF do anything.
   if (s.view.error !== null) {
     if (key !== "CE_C") return s;
-    return { ...s, view: { ...VIEW_DEFAULTS }, arith: { ...s.arith, entry: null, x: 0, stack: [] } };
+    const cleared: CalcState = { ...s, view: { ...VIEW_DEFAULTS }, arith: { ...s.arith, entry: null, x: 0, stack: [] } };
+    return s.mode.kind === "ws" ? redisplayWorksheet(cleared) : cleared;
   }
 
   if (key === "2ND") return { ...s, mods: { ...s.mods, second: !s.mods.second } };

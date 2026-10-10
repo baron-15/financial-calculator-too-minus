@@ -40,3 +40,10 @@ describe("worksheet display value is the working value", () => {
     expect(lcd("2ND P/Y 12 ENTER 2ND QUIT 2ND P/Y PV")).toBe("PV= 12.00 ◄");
   });
 });
+
+describe("arithmetic inside a worksheet", () => {
+  it("shows the working result before ENTER, then stores it", () => {
+    expect(lcd("2ND P/Y 5 × 12 =")).toBe("P/Y 60.00");
+    expect(lcd("2ND P/Y 5 × 12 = ENTER")).toBe("P/Y= 60.00 ◄");
+  });
+});

@@ -77,13 +77,17 @@ export function renderLcd(s: CalcState): Lcd {
     ann.set = v.kind === "setting" || !!v.settable;
     ann.ins = !!def.ins;
     ann.del = !!def.del;
-    const value = s.view.text ?? entryText ?? formatWsValue(s, def.value(s, v.id));
+    // After arithmetic inside a worksheet (e.g. `5 × 12 =` before ENTER) the LCD shows the working
+    // value, not the stored one; the runner sets view.assigned again on ENTER/CPT/navigation.
+    const scratch = !entering && !s.view.assigned;
+    const value =
+      s.view.text ?? entryText ?? (scratch ? formatNumber(s.arith.x, s.settings) : formatWsValue(s, def.value(s, v.id)));
     return {
       label: v.label,
       value,
       ann: {
         ...ann,
-        assigned: !entering && v.label !== "" && v.kind !== "setting",
+        assigned: !entering && !scratch && v.label !== "" && v.kind !== "setting",
         computed: !entering && (def.status ? def.status(s, v.id) === "computed" : s.view.computed),
         entered: !entering && (def.status ? def.status(s, v.id) === "entered" : s.view.entered),
       },

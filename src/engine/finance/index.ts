@@ -7,3 +7,4 @@ export * from "./depr";
 export * from "./stats";
 export * from "./daycount";
 export * from "./misc";
+export * from "./solver";

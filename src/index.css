@@ -1,6 +1,19 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+/*
+ * `dark:` follows an explicit data-theme="dark", or the OS preference when no theme has been chosen
+ * (data-theme absent). data-theme="light" opts out of OS dark mode. Same rules as the tokens below.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme]), :root:not([data-theme]) *) {
+      @slot;
+    }
+  }
+}
 
 :root {
   --page-bg: #f4f1ea;

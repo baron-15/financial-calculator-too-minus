@@ -302,6 +302,12 @@
   overflow: visible;
 }
 
+.ba-gold sup {
+  font-size: 0.78em;
+  vertical-align: 0.42em;
+  line-height: 0;
+}
+
 .ba-key {
   --k-face: linear-gradient(180deg, #3d3f44 0%, #303236 55%, #292b2e 100%);
   --k-hi: rgba(255, 255, 255, 0.15);

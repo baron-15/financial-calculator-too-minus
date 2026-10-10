@@ -32,6 +32,18 @@ function legend(spec: KeySpec): ReactNode {
   return spec.label;
 }
 
+/** Gold legend; the tiny modifier letter in "eˣ" is drawn as a real superscript so it stays legible. */
+function goldLegend(label: string): ReactNode {
+  if (!label.endsWith("ˣ")) return label;
+  // One inline box: .ba-gold is a flex container, and vertical-align only works on inline content.
+  return (
+    <span>
+      {label.slice(0, -1)}
+      <sup>x</sup>
+    </span>
+  );
+}
+
 /**
  * Accessible description of a key's gold 2ND function, e.g. "2ND: CLR TVM, Clear TVM". It replaces a native
  * title tooltip, which popped up on top of the custom key tip.
@@ -96,7 +108,7 @@ const Key = memo(function Key({ spec, row, col, rowSpan, flashN, pressed2nd, onP
   return (
     <div className="ba-cell" style={{ gridRow: `${row} / span ${rowSpan}`, gridColumn: col }}>
       <span className="ba-gold" aria-hidden="true">
-        {spec.second?.label ?? ""}
+        {goldLegend(spec.second?.label ?? "")}
       </span>
       {description && (
         <span id={descId} className="sr-only">

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ALL_KEYS, KEY_ROWS, type KeySpec } from "../../src/engine";
+import { ALL_KEYS, KEY_BY_ID, KEY_ROWS, type KeySpec } from "../../src/engine";
+import { secondDescription } from "../../src/ui/device/Keypad";
 import { KEY_TIPS, SECOND_TIPS } from "../../src/ui/device/keyTips";
 import { layoutKeys } from "../../src/ui/device/layout";
 import { EQ_EM, fitLcd, isNumericValue, LCD_LINE_CQW, numericGlyphs, textWidthEm, VALUE_MAX_CQW } from "../../src/ui/device/lcdGlyphs";
@@ -65,6 +66,18 @@ describe("key tips", () => {
       expect(tip.does.length).toBeGreaterThan(10);
       expect(tip.example.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("2ND descriptions (announced via aria-describedby instead of a title tooltip)", () => {
+  it("describes every key's gold function and nothing for keys without one", () => {
+    for (const spec of ALL_KEYS) {
+      const d = secondDescription(spec);
+      if (spec.second) expect(d, spec.id).toMatch(new RegExp(`^2ND: ${spec.second.label.replace(/[|\\/]/g, "\\$&")}`));
+      else expect(d, spec.id).toBeNull();
+    }
+    expect(secondDescription(KEY_BY_ID.FV)).toBe("2ND: CLR TVM, Clear TVM");
+    expect(secondDescription(KEY_BY_ID.PV)).toBe("2ND: AMORT, Amortization");
   });
 });
 

@@ -51,9 +51,10 @@ describe("clientKey", () => {
   it("uses the first X-Forwarded-For address", () => {
     expect(clientKey(req({ "x-forwarded-for": "198.51.100.1, 10.0.0.1" }))).toBe("198.51.100.1");
   });
-  it("falls back to other proxy headers, then a shared bucket", () => {
-    expect(clientKey(req({ "x-real-ip": "198.51.100.2" }))).toBe("198.51.100.2");
-    expect(clientKey(req({ "x-nf-client-connection-ip": "198.51.100.3" }))).toBe("198.51.100.3");
+  it("prefers platform-set headers over X-Forwarded-For, then falls back to a shared bucket", () => {
+    expect(clientKey(req({ "x-real-ip": "198.51.100.2", "x-forwarded-for": "6.6.6.6" }))).toBe("198.51.100.2");
+    expect(clientKey(req({ "x-nf-client-connection-ip": "198.51.100.3", "x-real-ip": "10.0.0.1" }))).toBe("198.51.100.3");
+    expect(clientKey(req({ "cf-connecting-ip": "198.51.100.4" }))).toBe("198.51.100.4");
     expect(clientKey(req({}))).toBe("anonymous");
   });
 });

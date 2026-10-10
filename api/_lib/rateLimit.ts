@@ -66,14 +66,18 @@ export class RateLimiter {
   }
 }
 
-/** Best guess at the caller's IP from common proxy headers (Vercel, Netlify, Cloudflare, the dev adapter). */
+/**
+ * Best guess at the caller's IP. Headers the platform sets itself come first (Netlify's
+ * x-nf-client-connection-ip, Vercel's x-real-ip), then the first X-Forwarded-For hop (the dev adapter
+ * sets it from the socket). Any of these can be spoofed where the platform does not overwrite them,
+ * which is one more reason this limiter is best-effort.
+ */
 export function clientKey(req: Request): string {
   const h = req.headers;
-  const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim();
   return (
-    forwarded ||
-    h.get("x-real-ip")?.trim() ||
     h.get("x-nf-client-connection-ip")?.trim() ||
+    h.get("x-real-ip")?.trim() ||
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     h.get("cf-connecting-ip")?.trim() ||
     "anonymous"
   );

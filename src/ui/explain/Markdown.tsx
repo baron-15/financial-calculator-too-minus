@@ -8,16 +8,17 @@ import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 import "katex/dist/katex.min.css";
 import "./explain.css";
+import { prepareMarkdown } from "./math";
 
 const components: Components = {
   a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
 };
 
-export default function Markdown({ text }: { text: string }) {
+export default function Markdown({ text, streaming = false }: { text: string; streaming?: boolean }) {
   return (
     <div className="explain-md">
       <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: "ignore" }]]} components={components}>
-        {text}
+        {prepareMarkdown(text, streaming)}
       </ReactMarkdown>
     </div>
   );

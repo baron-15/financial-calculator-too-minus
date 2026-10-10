@@ -115,7 +115,7 @@ export function ExplainView({ request, hint, title = "Step-by-step explanation",
           )}
           {shown ? (
             <Suspense fallback={<p className="whitespace-pre-wrap">{shown}</p>}>
-              <Markdown text={shown} />
+              <Markdown text={shown} streaming={streaming} />
             </Suspense>
           ) : (
             <p className="text-[var(--muted)]">Working it out…</p>

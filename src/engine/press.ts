@@ -9,6 +9,9 @@
  *   act on what is shown. After arithmetic the view is "scratch" (`view.assigned === false`, nothing typed):
  *   the LCD shows x (`2ND P/Y 5 × 12 =` → "P/Y 60.00") until ENTER stores it. ENTER first completes any
  *   pending operations. Worksheet controls cancel a calculation in progress and redisplay the variable.
+ * - A TVM key (or RCL + TVM key) inside a worksheet assigns (recalls) that TVM register and stays in the
+ *   worksheet: the value is shown as scratch under the worksheet's label, without "=" (guidebook p. 22).
+ *   2ND xP/Y also works inside a worksheet (guidebook p. 36). CPT and CLR TVM need standard mode.
  * - ANS (lastAnswer) updates on "=", worksheet ENTER, CPT (worksheet or TVM) and auto-computed values.
  * - Global range check: any value beyond ±9.9999999999999E99 is Error 1.
  */
@@ -86,7 +89,8 @@ function dispatch(s: CalcState, a: Action): [CalcState, Route] {
   if (s.mods.pending) {
     if (s.mods.pending.kind === "RCL" && TVM_KEYS.has(a)) {
       const k = a as TvmKey;
-      return [labelled({ ...setX(s, tvmValue(s, k)), mods: { ...s.mods, pending: null } }, TVM_LABEL[k], false), "calc"];
+      const recalled: CalcState = { ...setX(s, tvmValue(s, k)), mods: { ...s.mods, pending: null } };
+      return [s.mode.kind === "ws" ? scratch(recalled) : labelled(recalled, TVM_LABEL[k], false), "calc"];
     }
     const m = memoryKey(s, a);
     if (m) return [m, "calc"];
@@ -109,6 +113,13 @@ function dispatch(s: CalcState, a: Action): [CalcState, Route] {
   }
   if (a === "CLR_TVM" && s.mode.kind === "calc") return [{ ...setX(clearTvm(s), 0), view: { ...VIEW_DEFAULTS } }, "calc"];
 
+  // 2ND xP/Y multiplies the displayed value by P/Y, in standard mode or inside a worksheet (guidebook p. 36:
+  // AMORT `↓ 5 2ND xP/Y ENTER` → P2= 60.00). Inside a worksheet the product is a working value until ENTER.
+  if (a === "XPY" && s.mode.kind !== "resetConfirm") {
+    const product = setX(s, round13(currentValue(s) * s.ws.tvm.py));
+    return [s.mode.kind === "ws" ? scratch(product) : { ...product, view: { ...VIEW_DEFAULTS } }, "calc"];
+  }
+
   if (s.mode.kind === "resetConfirm") {
     if (a === "ENTER") {
       const fresh = initialState();
@@ -130,16 +141,15 @@ function dispatch(s: CalcState, a: Action): [CalcState, Route] {
     }
     const w = worksheetKey(s, a);
     if (w) return [w, "ws"];
-    // A TVM key inside another worksheet stores the displayed value and returns to standard mode.
+    // A TVM key inside another worksheet stores the displayed value and stays in the worksheet. Guidebook
+    // p. 22: "In worksheet modes the calculator displays only the value you enter or recall, although any
+    // variable label previously displayed remains displayed" (and the "=" indicator is off).
     if (TVM_KEYS.has(a)) {
       const k = a as TvmKey;
-      const calc: CalcState = { ...s, mode: { kind: "calc" } };
-      const next = tvmStore(commitEntry(calc), k, currentValue(s));
-      const shown = labelled(setX(next, tvmValue(next, k)), TVM_LABEL[k], false);
-      return [{ ...shown, view: { ...shown.view, entered: true } }, "calc"];
+      const next = tvmStore(commitEntry(s), k, currentValue(s));
+      return [scratch(setX(next, tvmValue(next, k))), "calc"];
     }
   } else {
-    if (a === "XPY") return [{ ...setX(s, round13(currentValue(s) * s.ws.tvm.py)), view: { ...VIEW_DEFAULTS } }, "calc"];
     if (a === "CPT") return [{ ...commitEntry(s), mods: { ...s.mods, compute: true } }, "none"];
     if (TVM_KEYS.has(a)) {
       const k = a as TvmKey;
@@ -241,6 +251,11 @@ function checkRange(s: CalcState): void {
     const n = displayedNumber(s);
     if (n !== null && isOverflow(n)) throw new CalcError(1);
   }
+}
+
+/** Inside a worksheet: show x as a working value under the current label (no "=", ◄ or *). */
+function scratch(s: CalcState): CalcState {
+  return { ...s, view: { ...s.view, assigned: false, computed: false, entered: false, text: null } };
 }
 
 function labelled(s: CalcState, label: string, computed: boolean): CalcState {

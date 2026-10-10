@@ -2,6 +2,7 @@ import { memo } from "react";
 import { lcdText, type Annunciators, type Lcd as LcdModel } from "../../engine";
 import { fitLcd, isNumericValue, numericGlyphs } from "./lcdGlyphs";
 import { segPath, segPieces, type SegPiece } from "./lcdSegments";
+import { lcdAnnouncement } from "./lcdSpeech";
 
 /** Indicators along the top of the LCD, left to right (docs/SPEC.md §11). */
 const ANNUNCIATORS: { key: keyof Annunciators; text: string; id: string }[] = [
@@ -98,8 +99,12 @@ export const Lcd = memo(function Lcd({ lcd, on }: LcdProps) {
           </span>
         </div>
       </div>
-      <div role="status" aria-live="polite" className="sr-only" data-testid="lcd-text">
+      {/* Exact LCD text ("PV= -1,000.00 *"), the same form engine tests use; a test hook, not announced. */}
+      <span hidden data-testid="lcd-text">
         {on ? lcdText(lcd) : "Off"}
+      </span>
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="lcd-announce">
+        {lcdAnnouncement(lcd, on)}
       </div>
     </div>
   );

@@ -95,6 +95,9 @@ test("hovering a key explains it and its 2ND function", async ({ page, isMobile 
   test.skip(isMobile, "hover tips are for pointer devices; touch uses long-press");
   await key(page, "PV, present value").hover();
   const tip = page.getByTestId("key-tip");
+  // Not aggressive: a brief hover (passing over the keypad) does not open it.
+  await page.waitForTimeout(700);
+  await expect(tip).toBeHidden();
   await expect(tip).toBeVisible();
   await expect(tip).toContainText("Present value");
   await expect(tip).toContainText("AMORT");

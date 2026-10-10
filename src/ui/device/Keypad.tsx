@@ -4,7 +4,8 @@ import { HIT_PAD, KEY_BOXES, LEGEND_CAP, cqw, pctX, pctY, type KeyBox } from "./
 import { SECOND_TIPS } from "./keyTips";
 
 const LONG_PRESS_MS = 500;
-const HOVER_DELAY_MS = 350;
+/** Hover must rest on a key this long before its tip opens, so moving across the keypad stays quiet. */
+export const HOVER_DELAY_MS = 1100;
 
 export interface TipRequest {
   id: KeyId;

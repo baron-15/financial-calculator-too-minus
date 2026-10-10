@@ -260,7 +260,12 @@ These are computed on the transformed data for each model:
 
 ## 10. Keyboard
 
-The source of truth is `src/engine/keys.ts`, which defines `KEY_ROWS`. The keypad is 9 rows × 5 columns; `=` is a tall key covering rows 8–9 of column 5. Each cell shows the primary label with the 2ND label in brackets.
+The source of truth for key functions is `src/engine/keys.ts` (`KEY_ROWS`, the logical reading order below). Physical placement is in `src/ui/device/geometry.ts`, measured from TI's product render. The keypad is not a uniform grid:
+- the left column and the top five rows use small keys on a 28.875-unit pitch;
+- the digit block (columns 2–4) uses taller keys on a 36-unit pitch, starting level with LN;
+- the right column (÷ × − + =) uses tall keys on a 36-unit pitch, starting level with %.
+
+`=` is an ordinary operator key, the same size as ÷ × − +, level with CE|C. Each cell below shows the primary label with the 2ND label in brackets.
 
 | Row | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 |
 |---|---|---|---|---|---|
@@ -272,7 +277,7 @@ The source of truth is `src/engine/keys.ts`, which defines `KEY_ROWS`. The keypa
 | 6 | LN [eˣ] | 7 [DATA] | 8 [STAT] | 9 [BOND] | − [nPr] |
 | 7 | STO [ROUND] | 4 [DEPR] | 5 [Δ%] | 6 [BRKEVN] | + [nCr] |
 | 8 | RCL | 1 [DATE] | 2 [ICONV] | 3 [PROFIT] | = [ANS] |
-| 9 | CE\|C [CLR WORK] | 0 [MEM] | . [FORMAT] | +\|− [RESET] | (= continues) |
+| 9 | CE\|C [CLR WORK] | 0 [MEM] | . [FORMAT] | +\|− [RESET] | (= sits level with CE\|C) |
 
 - **Primary keys:** CF, NPV and IRR are primary keys. The guidebook's "2nd CF" is a typo.
 - **2ND:** pressing 2ND again cancels it.

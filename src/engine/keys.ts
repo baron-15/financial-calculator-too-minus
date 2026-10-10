@@ -1,6 +1,7 @@
 /**
  * Physical keys of the BA II Plus, and the functions they produce with/without 2ND.
- * Layout is 9 rows × 5 columns; "=" occupies the last two rows of the right column.
+ * KEY_ROWS is the logical (reading / tab) order: rows top to bottom, keys left to right. The physical
+ * placement is not a grid; see src/ui/device/geometry.ts for the measured positions.
  * See docs/SPEC.md §Keyboard.
  */
 
@@ -36,8 +37,6 @@ export interface KeySpec {
   second?: { fn: SecondFn; label: string };
   /** Visual class used by the skin */
   kind: "digit" | "op" | "fn" | "tvm" | "control" | "second";
-  /** Rows spanned (only "=" spans 2) */
-  rowSpan?: number;
   /** Accessible name */
   aria: string;
 }
@@ -48,10 +47,9 @@ const k = (
   kind: KeySpec["kind"],
   aria: string,
   second?: [SecondFn, string],
-  rowSpan?: number,
-): KeySpec => ({ id, label, kind, aria, ...(second ? { second: { fn: second[0], label: second[1] } } : {}), ...(rowSpan ? { rowSpan } : {}) });
+): KeySpec => ({ id, label, kind, aria, ...(second ? { second: { fn: second[0], label: second[1] } } : {}) });
 
-/** Rows top→bottom. The last row has 4 entries because "=" spans two rows. */
+/** Rows top→bottom (logical order). "=" sits at the bottom of the operator column, beside CE|C. */
 export const KEY_ROWS: KeySpec[][] = [
   [
     k("CPT", "CPT", "control", "Compute", ["QUIT", "QUIT"]),
@@ -107,7 +105,7 @@ export const KEY_ROWS: KeySpec[][] = [
     k("1", "1", "digit", "1", ["DATE", "DATE"]),
     k("2", "2", "digit", "2", ["ICONV", "ICONV"]),
     k("3", "3", "digit", "3", ["PROFIT", "PROFIT"]),
-    k("EQUALS", "=", "op", "Equals", ["ANS", "ANS"], 2),
+    k("EQUALS", "=", "op", "Equals", ["ANS", "ANS"]),
   ],
   [
     k("CE_C", "CE|C", "control", "Clear entry / clear", ["CLR_WORK", "CLR WORK"]),

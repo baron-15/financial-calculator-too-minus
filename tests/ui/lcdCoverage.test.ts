@@ -1,7 +1,6 @@
 /**
- * Every label and text value the engine can put on the LCD must have a renderable path:
- * numeric values through the DSEG7 font (checked against the font's own cmap), everything else
- * through the SVG segment glyphs in src/ui/device/lcdSegments.ts.
+ * Every label and value the engine can put on the LCD must have a renderable path: the whole display
+ * (numbers included) is drawn with the SVG segment glyphs in src/ui/device/lcdSegments.ts.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -11,46 +10,10 @@ import { formatNumber } from "../../src/engine/format";
 import { formatWsValue } from "../../src/engine/lcd";
 import { STAT_LABELS, STAT_MODELS } from "../../src/engine/worksheets/data";
 import { WORKSHEETS } from "../../src/engine/worksheets/registry";
-import { isNumericValue, numericGlyphs } from "../../src/ui/device/lcdGlyphs";
 import { SEG_CHARS, segPath, segPieces } from "../../src/ui/device/lcdSegments";
 
 const ROOT = join(__dirname, "../..");
 
-/** Code points mapped to a glyph by a TrueType font's format-4 cmap subtable. */
-function cmapCodePoints(file: string): Set<number> {
-  const buf = readFileSync(file);
-  const numTables = buf.readUInt16BE(4);
-  let cmap = -1;
-  for (let t = 0; t < numTables; t++) {
-    const rec = 12 + t * 16;
-    if (buf.toString("latin1", rec, rec + 4) === "cmap") cmap = buf.readUInt32BE(rec + 8);
-  }
-  if (cmap < 0) throw new Error(`no cmap in ${file}`);
-  const out = new Set<number>();
-  const subtables = buf.readUInt16BE(cmap + 2);
-  for (let k = 0; k < subtables; k++) {
-    const sub = cmap + buf.readUInt32BE(cmap + 4 + k * 8 + 4);
-    if (buf.readUInt16BE(sub) !== 4) continue;
-    const segCount = buf.readUInt16BE(sub + 6) / 2;
-    const ends = sub + 14;
-    const starts = ends + segCount * 2 + 2;
-    const deltas = starts + segCount * 2;
-    const ranges = deltas + segCount * 2;
-    for (let i = 0; i < segCount; i++) {
-      const end = buf.readUInt16BE(ends + i * 2);
-      const start = buf.readUInt16BE(starts + i * 2);
-      const delta = buf.readInt16BE(deltas + i * 2);
-      const rangeOffset = buf.readUInt16BE(ranges + i * 2);
-      for (let c = start; c <= end && c !== 0xffff; c++) {
-        const gid = rangeOffset === 0 ? (c + delta) & 0xffff : buf.readUInt16BE(ranges + i * 2 + rangeOffset + (c - start) * 2);
-        if (gid !== 0) out.add(c);
-      }
-    }
-  }
-  return out;
-}
-
-const DSEG7 = cmapCodePoints(join(ROOT, "node_modules/dseg/fonts/DSEG7-Classic/DSEG7Classic-Bold.ttf"));
 
 /** States that between them show every variable and setting of every worksheet. */
 function sampleStates(): CalcState[] {
@@ -156,17 +119,10 @@ describe("LCD glyph coverage", () => {
     }
   });
 
-  it("draws every value: numbers in DSEG7, text with segment glyphs", () => {
+  it("draws every value (numbers, dates, settings, errors) with segment glyphs", () => {
     for (const value of shown.values) {
-      if (isNumericValue(value)) {
-        for (const g of numericGlyphs(value)) {
-          if (g.t !== "text") continue; // commas and exponent gaps are drawn by the skin
-          for (const ch of g.s) expect(DSEG7.has(ch.codePointAt(0)!), `"${ch}" of "${value}" in DSEG7`).toBe(true);
-        }
-      } else {
-        const missing = segPieces(value).filter((p) => p.t === "missing");
-        expect(missing.map((p) => p.ch), `value "${value}"`).toEqual([]);
-      }
+      const missing = segPieces(value).filter((p) => p.t === "missing");
+      expect(missing.map((p) => p.ch), `value "${value}"`).toEqual([]);
     }
   });
 

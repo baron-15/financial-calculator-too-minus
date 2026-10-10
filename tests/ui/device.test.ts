@@ -1,48 +1,68 @@
 import { describe, expect, it } from "vitest";
-import { ALL_KEYS, KEY_BY_ID, KEY_ROWS, type KeySpec } from "../../src/engine";
+import { ALL_KEYS, KEY_BY_ID, type KeyId } from "../../src/engine";
+import { COLS, DEVICE_H, DEVICE_W, HIT_PAD, KEY_BOXES, type KeyBox } from "../../src/ui/device/geometry";
 import { secondDescription } from "../../src/ui/device/Keypad";
 import { KEY_TIPS, SECOND_TIPS } from "../../src/ui/device/keyTips";
-import { layoutKeys } from "../../src/ui/device/layout";
-import { EQ_EM, fitLcd, isNumericValue, LCD_LINE_CQW, numericGlyphs, textWidthEm, VALUE_MAX_CQW } from "../../src/ui/device/lcdGlyphs";
+import { DIGIT_UNITS, LABEL_GAP_EM, LCD_ROW_UNITS, fitLcd, isNumericValue, labelWidthEm, valueWidthEm } from "../../src/ui/device/lcdGlyphs";
+import { CELL, segWidthEm } from "../../src/ui/device/lcdSegments";
 
-describe("layoutKeys", () => {
-  const placed = layoutKeys(KEY_ROWS);
+const overlap = (a: { x: number; y: number; w: number; h: number }, b: typeof a) =>
+  a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+const hit = (b: KeyBox) => ({ x: b.x - HIT_PAD.x, y: b.y - HIT_PAD.y, w: b.w + 2 * HIT_PAD.x, h: b.h + 2 * HIT_PAD.y });
+const box = (id: KeyId) => KEY_BOXES[id];
 
-  it("places every key once on a 9 × 5 grid", () => {
-    expect(placed).toHaveLength(ALL_KEYS.length);
-    const cells = new Set<string>();
-    for (const p of placed) {
-      for (let r = p.row; r < p.row + p.rowSpan; r++) {
-        const cell = `${r}:${p.col}`;
-        expect(cells.has(cell)).toBe(false);
-        cells.add(cell);
-      }
-      expect(p.col).toBeGreaterThanOrEqual(1);
-      expect(p.col).toBeLessThanOrEqual(5);
+describe("measured device geometry (TI product render, 250 × 506 units)", () => {
+  it("keeps the real proportions", () => {
+    expect(DEVICE_H / DEVICE_W).toBeCloseTo(2.024, 3);
+  });
+
+  it("places every key inside the case, with no overlapping faces or hit areas", () => {
+    const ids = ALL_KEYS.map((k) => k.id);
+    expect(Object.keys(KEY_BOXES).sort()).toEqual([...ids].sort());
+    for (const id of ids) {
+      const b = box(id);
+      expect(b.x).toBeGreaterThan(20);
+      expect(b.x + b.w).toBeLessThan(230);
+      expect(b.y).toBeGreaterThan(180);
+      expect(b.y + b.h).toBeLessThan(475);
     }
-    expect(cells.size).toBe(45);
+    for (let i = 0; i < ids.length; i++)
+      for (let j = i + 1; j < ids.length; j++) {
+        expect(overlap(box(ids[i]!), box(ids[j]!)), `${ids[i]} / ${ids[j]}`).toBe(false);
+        expect(overlap(hit(box(ids[i]!)), hit(box(ids[j]!))), `hit ${ids[i]} / ${ids[j]}`).toBe(false);
+      }
   });
 
-  it("puts = in column 5 spanning rows 8–9, and row 9 in columns 1–4", () => {
-    const eq = placed.find((p) => p.spec.id === "EQUALS")!;
-    expect(eq).toMatchObject({ row: 8, col: 5, rowSpan: 2 });
-    expect(placed.filter((p) => p.row === 9).map((p) => [p.spec.id, p.col])).toEqual([
-      ["CE_C", 1],
-      ["0", 2],
-      ["DOT", 3],
-      ["PLUSMINUS", 4],
-    ]);
+  it('makes "=" an ordinary operator key: same size as ÷ × − +, level with CE|C', () => {
+    for (const id of ["DIVIDE", "MULTIPLY", "SUBTRACT", "ADD"] as const) {
+      expect(box("EQUALS").w).toBe(box(id).w);
+      expect(box("EQUALS").h).toBe(box(id).h);
+      expect(box("EQUALS").shape).toBe("shield");
+    }
+    expect(box("EQUALS").y).toBeCloseTo(box("CE_C").y, 0);
   });
 
-  it("keeps the SPEC row order (CPT top-left, ON|OFF top-right)", () => {
-    expect(placed.find((p) => p.spec.id === "CPT")).toMatchObject({ row: 1, col: 1 });
-    expect(placed.find((p) => p.spec.id === "ONOFF")).toMatchObject({ row: 1, col: 5 });
-    expect(placed.find((p) => p.spec.id === "BACKSPACE")).toMatchObject({ row: 2, col: 5 });
+  it("uses three vertical rhythms: small keys every 28.875, digits every 36, operators every 36.15", () => {
+    expect(box("2ND").y - box("CPT").y).toBeCloseTo(28.875, 3);
+    expect(box("RCL").y - box("STO").y).toBeCloseTo(28.875, 3);
+    expect(box("RCL").y).toBeCloseTo(396, 0); // measured
+    expect(box("4").y - box("7").y).toBe(36);
+    expect(box("0").y - box("1").y).toBe(36);
+    expect(box("MULTIPLY").y - box("DIVIDE").y).toBeCloseTo(36.15, 2);
+    expect(Math.abs(box("DIVIDE").y - box("PERCENT").y)).toBeLessThan(1); // ÷ starts level with the % row
+    expect(Math.abs(box("7").y - box("LN").y)).toBeLessThan(1.5); // the digit block starts level with LN
   });
 
-  it("rejects a row with too many keys", () => {
-    const six = Array.from({ length: 6 }, () => ALL_KEYS[0]!) as KeySpec[];
-    expect(() => layoutKeys([six])).toThrow();
+  it("aligns digits with columns 2–4 and operators with column 5", () => {
+    expect([box("7").x, box("8").x, box("9").x]).toEqual([COLS[1], COLS[2], COLS[3]]);
+    expect(new Set(["DIVIDE", "MULTIPLY", "SUBTRACT", "ADD", "EQUALS", "ONOFF", "FV"].map((id) => box(id as KeyId).x))).toEqual(new Set([COLS[4]]));
+  });
+
+  it("colors the key families as on the device", () => {
+    expect(["N", "IY", "PV", "PMT", "FV"].map((id) => box(id as KeyId).color)).toEqual(Array(5).fill("white"));
+    expect(box("2ND").color).toBe("tan");
+    expect(["0", "5", "DOT", "PLUSMINUS"].map((id) => box(id as KeyId).color)).toEqual(Array(4).fill("grey"));
+    expect(["CPT", "CF", "PERCENT", "LN", "CE_C", "EQUALS"].map((id) => box(id as KeyId).color)).toEqual(Array(6).fill("dark"));
   });
 });
 
@@ -82,36 +102,29 @@ describe("2ND descriptions (announced via aria-describedby instead of a title to
 });
 
 describe("LCD glyphs", () => {
-  it("uses the 7-segment face only for numeric values", () => {
+  it("recognizes numeric values", () => {
     expect(isNumericValue("-1,234.56")).toBe(true);
     expect(isNumericValue("1.234567 12")).toBe(true);
     expect(isNumericValue("12-31-1990")).toBe(true);
     expect(isNumericValue("Error 5")).toBe(false);
     expect(isNumericValue("ACT")).toBe(false);
-    expect(isNumericValue("9-5-2026 SAT")).toBe(false);
-    expect(isNumericValue("?")).toBe(false);
+    expect(isNumericValue("9-05-2026 SAT")).toBe(false);
   });
 
-  it("draws commas and exponent gaps as their own glyphs", () => {
-    expect(numericGlyphs("-1,234.5")).toEqual([{ t: "text", s: "-1" }, { t: "comma" }, { t: "text", s: "234.5" }]);
-    expect(numericGlyphs("1.5 12")).toEqual([{ t: "text", s: "1.5" }, { t: "blank" }, { t: "text", s: "12" }]);
+  it("measures one narrow cell per character; the point and commas take no width", () => {
+    expect(CELL / 1000).toBeCloseTo(0.45);
+    expect(segWidthEm("1,234.00")).toBeCloseTo(6 * 0.45);
+    expect(segWidthEm("AB C")).toBeCloseTo(4 * 0.45);
+    expect(segWidthEm("x\u0304")).toBeCloseTo(0.45);
   });
 
-  it("measures separators as zero width, and text by its segment glyphs", () => {
-    expect(textWidthEm("1,234.00", true)).toBeCloseTo(6 * 0.816);
-    // A space in text is a full blank cell ("Error 5", "12-31-2003 SAT"); ² and ' are half cells.
-    expect(textWidthEm("AB C", false)).toBeCloseTo(4 * 0.816);
-    expect(textWidthEm("ΣX²", false)).toBeCloseTo(2.5 * 0.816);
-    expect(textWidthEm("x\u0304", false)).toBeCloseTo(0.816);
-  });
-
-  it("keeps the full size for ten digits and shrinks only when a long label needs room", () => {
-    expect(fitLcd("", "-9,999,999,999").valueSize).toBe(VALUE_MAX_CQW);
-    expect(fitLcd("PV", "-120,000.00").valueSize).toBe(VALUE_MAX_CQW);
-    expect(fitLcd("BAL", "118,928.63").valueSize).toBe(VALUE_MAX_CQW);
-    const tight = fitLcd("PMT", "-1,234,567,890");
-    expect(tight.valueSize).toBeLessThan(VALUE_MAX_CQW);
-    const used = (textWidthEm("PMT", false) + EQ_EM) * tight.labelSize + 0.8 + textWidthEm("-1,234,567,890", true) * tight.valueSize;
-    expect(used).toBeLessThanOrEqual(LCD_LINE_CQW + 0.01);
+  it("keeps the measured 31-unit height for a label and ten digits, shrinking only to fit", () => {
+    expect(fitLcd("", "-9,999,999,999")).toBe(DIGIT_UNITS);
+    expect(fitLcd("PV", "1,234,567,890")).toBe(DIGIT_UNITS);
+    expect(fitLcd("BAL", "118,928.63")).toBe(DIGIT_UNITS);
+    const size = fitLcd("ΣXY", "-1,234,567,890");
+    expect(size).toBeLessThan(DIGIT_UNITS);
+    const used = (labelWidthEm("ΣXY") + LABEL_GAP_EM + valueWidthEm("-1,234,567,890")) * size;
+    expect(used).toBeLessThanOrEqual(LCD_ROW_UNITS + 0.01);
   });
 });

@@ -1,7 +1,7 @@
-import { memo, useEffect, useId, useMemo, useRef, type ReactNode } from "react";
-import { KEY_ROWS, type KeyId, type KeySpec } from "../../engine";
+import { memo, useEffect, useId, useRef, type ReactNode } from "react";
+import { ALL_KEYS, type KeyId, type KeySpec } from "../../engine";
+import { HIT_PAD, KEY_BOXES, LEGEND_CAP, cqw, pctX, pctY, type KeyBox } from "./geometry";
 import { SECOND_TIPS } from "./keyTips";
-import { layoutKeys } from "./layout";
 
 const LONG_PRESS_MS = 500;
 const HOVER_DELAY_MS = 350;
@@ -21,27 +21,92 @@ export interface KeypadProps {
   onTip: (req: TipRequest | null) => void;
 }
 
-function legend(spec: KeySpec): ReactNode {
-  if (spec.id === "POWER") {
-    return (
-      <>
-        y<sup>x</sup>
-      </>
-    );
-  }
-  return spec.label;
+const math = (s: string) => <span className="ba-math">{s}</span>;
+
+/**
+ * Operator symbols and the decimal point are drawn, not typeset: on the device they are ~13 units
+ * wide, much larger than any font's math glyphs at the legend size. Coordinates are device units
+ * centered on the key; strokes are 1.9 units (device.css).
+ */
+const SYMBOLS: Partial<Record<KeyId, ReactNode>> = {
+  DIVIDE: (
+    <>
+      <line x1="-6.5" y1="0" x2="6.5" y2="0" />
+      <circle cx="0" cy="-4.6" r="1.45" />
+      <circle cx="0" cy="4.6" r="1.45" />
+    </>
+  ),
+  MULTIPLY: (
+    <>
+      <line x1="-5" y1="-5" x2="5" y2="5" />
+      <line x1="-5" y1="5" x2="5" y2="-5" />
+    </>
+  ),
+  SUBTRACT: <line x1="-6.5" y1="0" x2="6.5" y2="0" />,
+  ADD: (
+    <>
+      <line x1="-6.5" y1="0" x2="6.5" y2="0" />
+      <line x1="0" y1="-6.5" x2="0" y2="6.5" />
+    </>
+  ),
+  EQUALS: (
+    <>
+      <line x1="-6.5" y1="-2.9" x2="6.5" y2="-2.9" />
+      <line x1="-6.5" y1="2.9" x2="6.5" y2="2.9" />
+    </>
+  ),
+  DOT: <circle cx="0" cy="0.8" r="1.6" />,
+};
+
+function symbol(id: KeyId, box: KeyBox): ReactNode {
+  const shape = SYMBOLS[id];
+  if (!shape) return null;
+  return (
+    <svg className="ba-symbol" viewBox={`${-box.w / 2} ${-box.h / 2} ${box.w} ${box.h}`} aria-hidden="true" focusable="false">
+      {shape}
+    </svg>
+  );
 }
 
-/** Gold legend; the tiny modifier letter in "eˣ" is drawn as a real superscript so it stays legible. */
-function goldLegend(label: string): ReactNode {
-  if (!label.endsWith("ˣ")) return label;
-  // One inline box: .ba-gold is a flex container, and vertical-align only works on inline content.
-  return (
-    <span>
-      {label.slice(0, -1)}
-      <sup>x</sup>
-    </span>
-  );
+/** Key face legend. Math letters (x, y) are an italic serif, as printed on the device. */
+function legend(spec: KeySpec): ReactNode {
+  switch (spec.id) {
+    case "SQRT":
+      return (
+        <span className="ba-radical">
+          √<span className="ba-math ba-overbar">x</span>
+        </span>
+      );
+    case "SQUARE":
+      return (
+        <>
+          {math("x")}
+          <sup>2</sup>
+        </>
+      );
+    case "RECIP":
+      return <>1/{math("x")}</>;
+    case "POWER":
+      return (
+        <>
+          {math("y")}
+          <sup className="ba-math">x</sup>
+        </>
+      );
+    default:
+      return spec.label;
+  }
+}
+
+/** Cap height of the legend face (Fira Sans Condensed) relative to its font size. */
+const CAP_RATIO = 0.689;
+
+/** Legend cap height in device units: small keys 7.6, digits 13, operators 12 (measured). */
+function legendCap(spec: KeySpec, box: KeyBox): number {
+  if (spec.kind === "digit") return spec.id === "PLUSMINUS" ? LEGEND_CAP.op * 0.95 : LEGEND_CAP.digit;
+  if (box.shape === "shield") return LEGEND_CAP.op;
+  if (spec.id === "ONOFF") return LEGEND_CAP.small * 0.86;
+  return LEGEND_CAP.small;
 }
 
 /**
@@ -56,16 +121,14 @@ export function secondDescription(spec: KeySpec): string | null {
 
 interface KeyProps {
   spec: KeySpec;
-  row: number;
-  col: number;
-  rowSpan: number;
+  box: KeyBox;
   flashN: number;
   pressed2nd: boolean;
   onPress: (id: KeyId) => void;
   onTip: (req: TipRequest | null) => void;
 }
 
-const Key = memo(function Key({ spec, row, col, rowSpan, flashN, pressed2nd, onPress, onTip }: KeyProps) {
+const Key = memo(function Key({ spec, box, flashN, pressed2nd, onPress, onTip }: KeyProps) {
   const faceRef = useRef<HTMLSpanElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -78,7 +141,7 @@ const Key = memo(function Key({ spec, row, col, rowSpan, flashN, pressed2nd, onP
     faceRef.current?.animate?.(
       [
         { transform: "translateY(0)", filter: "brightness(1)" },
-        { transform: "translateY(0.45cqw)", filter: "brightness(0.82)", offset: 0.35 },
+        { transform: `translateY(${cqw(0.9)})`, filter: "brightness(0.82)", offset: 0.35 },
         { transform: "translateY(0)", filter: "brightness(1)" },
       ],
       { duration: 170, easing: "ease-out" },
@@ -93,23 +156,20 @@ const Key = memo(function Key({ spec, row, col, rowSpan, flashN, pressed2nd, onP
     [],
   );
 
-  const long = spec.label.length >= 4;
-  const classes = [
-    "ba-key",
-    `ba-key--${spec.kind}`,
-    spec.id === "ONOFF" ? "ba-key--onoff" : "",
-    row === 1 ? "ba-key--top" : "",
-    rowSpan > 1 ? "ba-key--tall" : "",
-    long ? "ba-key--long" : "",
-  ]
+  const classes = ["ba-key", `ba-key--${spec.kind}`, `ba-shape--${box.shape}`, `ba-color--${box.color}`, spec.id === "ONOFF" ? "ba-key--onoff" : ""]
     .filter(Boolean)
     .join(" ");
+  // The button is the hit area: the measured key box plus HIT_PAD on every side; the face is the key.
+  const hit = { x: box.x - HIT_PAD.x, y: box.y - HIT_PAD.y, w: box.w + 2 * HIT_PAD.x, h: box.h + 2 * HIT_PAD.y };
+  const face = {
+    left: `${(HIT_PAD.x / hit.w) * 100}%`,
+    top: `${(HIT_PAD.y / hit.h) * 100}%`,
+    width: `${(box.w / hit.w) * 100}%`,
+    height: `${(box.h / hit.h) * 100}%`,
+  };
 
   return (
-    <div className="ba-cell" style={{ gridRow: `${row} / span ${rowSpan}`, gridColumn: col }}>
-      <span className="ba-gold" aria-hidden="true">
-        {goldLegend(spec.second?.label ?? "")}
-      </span>
+    <div className="ba-cell" style={{ left: pctX(hit.x), top: pctY(hit.y), width: pctX(hit.w), height: pctY(hit.h) }}>
       {description && (
         <span id={descId} className="sr-only">
           {description}
@@ -159,8 +219,12 @@ const Key = memo(function Key({ spec, row, col, rowSpan, flashN, pressed2nd, onP
           onPress(spec.id);
         }}
       >
-        <span ref={faceRef} className="ba-key-face">
-          <span className="ba-key-legend">{legend(spec)}</span>
+        <span ref={faceRef} className="ba-key-face" style={face}>
+          {symbol(spec.id, box) ?? (
+            <span className="ba-key-legend" aria-hidden="true" style={{ fontSize: cqw(legendCap(spec, box) / CAP_RATIO) }}>
+              {legend(spec)}
+            </span>
+          )}
         </span>
       </button>
     </div>
@@ -168,18 +232,15 @@ const Key = memo(function Key({ spec, row, col, rowSpan, flashN, pressed2nd, onP
 });
 
 export const Keypad = memo(function Keypad({ onPress, flash, secondActive, onTip }: KeypadProps) {
-  const placed = useMemo(() => layoutKeys(KEY_ROWS), []);
   return (
     <div className="ba-keypad" role="group" aria-label="Keypad">
-      {placed.map((p) => (
+      {ALL_KEYS.map((spec) => (
         <Key
-          key={p.spec.id}
-          spec={p.spec}
-          row={p.row}
-          col={p.col}
-          rowSpan={p.rowSpan}
-          flashN={flash?.id === p.spec.id ? flash.n : 0}
-          pressed2nd={p.spec.id === "2ND" && secondActive}
+          key={spec.id}
+          spec={spec}
+          box={KEY_BOXES[spec.id]}
+          flashN={flash?.id === spec.id ? flash.n : 0}
+          pressed2nd={spec.id === "2ND" && secondActive}
           onPress={onPress}
           onTip={onTip}
         />

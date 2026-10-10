@@ -92,7 +92,10 @@ async function contrastFailures(page: Page): Promise<ContrastFailure[]> {
       const el = n.parentElement;
       if (!el || seen.has(el) || !n.textContent?.trim()) continue;
       seen.add(el);
-      if (el.closest(".ba-lcd, .sr-only, [hidden], :disabled, [aria-disabled='true'], .katex-mathml")) continue;
+      // Key legends reproduce the hardware's printed colors on purpose (white "2ND" on tan, white digits on
+      // warm grey are low contrast on the real BA II Plus). They are aria-hidden: every key has an
+      // accessible name and its 2ND function as a description (see the keypad semantics tests).
+      if (el.closest(".ba-lcd, .ba-key-legend, .sr-only, [hidden], :disabled, [aria-disabled='true'], .katex-mathml")) continue;
       const rect = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
       if (rect.width === 0 || rect.height === 0 || cs.visibility === "hidden" || cs.display === "none") continue;

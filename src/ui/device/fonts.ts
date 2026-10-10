@@ -1,21 +1,19 @@
 /**
- * Register the DSEG7 LCD face for numbers (SIL OFL, see THIRD_PARTY_NOTICES.md). Vite turns the import
- * into a hashed asset URL, so the font ships with the build instead of loading from a CDN.
- * Labels and text values are drawn as SVG segments instead (lcdSegments.ts).
+ * Faces used on the device skin (all SIL OFL, self-hosted by Vite; see THIRD_PARTY_NOTICES.md):
+ * - Fira Sans Condensed: key legends, gold 2ND legends, LCD indicators (a humanist condensed sans,
+ *   matching the printed legends);
+ * - Fira Sans: the "BA" and "Plus" of the wordmark, the BUSINESS ANALYST caption;
+ * - STIX Two Text: the italic math x / y on √x, x², 1/x, yˣ, eˣ, x! and the serif "II".
+ * LCD characters are drawn as SVG segments (lcdSegments.ts), not with a font.
  */
-import dseg7Bold from "dseg/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2";
+import "@fontsource/fira-sans-condensed/latin-400.css";
+import "@fontsource/fira-sans-condensed/latin-500.css";
+import "@fontsource/fira-sans-condensed/latin-600.css";
+import "@fontsource/fira-sans-condensed/latin-700.css";
+import "@fontsource/fira-sans/latin-300-italic.css";
+import "@fontsource/fira-sans/latin-500.css";
+import "@fontsource/fira-sans/latin-800.css";
+import "@fontsource/stix-two-text/latin-500-italic.css";
+import "@fontsource/stix-two-text/latin-600-italic.css";
+import "@fontsource/stix-two-text/latin-700.css";
 
-const CSS = `
-@font-face { font-family: "DSEG7 Classic"; src: url("${dseg7Bold}") format("woff2"); font-weight: 400 900; font-display: block; }
-`;
-
-let installed = false;
-
-export function installLcdFonts(): void {
-  if (installed || typeof document === "undefined") return;
-  installed = true;
-  const style = document.createElement("style");
-  style.dataset.lcdFonts = "";
-  style.textContent = CSS;
-  document.head.appendChild(style);
-}

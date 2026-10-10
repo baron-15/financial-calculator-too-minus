@@ -34,3 +34,9 @@ describe("Phase 0 pipeline smoke tests", () => {
     expect(display("1 ÷ 0 = 5 +")).toBe("Error 1");
   });
 });
+
+describe("worksheet display value is the working value", () => {
+  it("TVM key inside a worksheet stores the displayed value", () => {
+    expect(lcd("2ND P/Y 12 ENTER 2ND QUIT 2ND P/Y PV")).toBe("PV= 12.00 ◄");
+  });
+});

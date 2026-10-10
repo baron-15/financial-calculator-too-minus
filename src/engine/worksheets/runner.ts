@@ -31,6 +31,15 @@ export function currentWorksheet(s: CalcState): { def: WorksheetDef; vars: WsVar
   return { def, vars, index, v: vars[index] };
 }
 
+/**
+ * Keep `arith.x` equal to the displayed numeric value, so ENTER, arithmetic and TVM keys pressed
+ * with nothing typed act on what the LCD shows (e.g. `CF ↓ 3000 ENTER ↓ × 2 = ENTER` sets F01 = 2).
+ */
+function syncX(s: CalcState, def: WorksheetDef, varId: string): CalcState {
+  const val = def.value(s, varId);
+  return val.kind === "number" ? { ...s, arith: { ...s.arith, x: val.value, entry: null } } : s;
+}
+
 /** Make `v` the displayed variable, running auto-compute if needed. */
 function showVar(s: CalcState, def: WorksheetDef, v: WsVar, computed = false): CalcState {
   let next: CalcState = {
@@ -42,7 +51,7 @@ function showVar(s: CalcState, def: WorksheetDef, v: WsVar, computed = false): C
     next = def.auto(next, v.id);
     next = { ...next, view: { ...next.view, computed: true } };
   }
-  return next;
+  return syncX(next, def, v.id);
 }
 
 /**
@@ -70,8 +79,8 @@ export function worksheetKey(s: CalcState, a: Action): CalcState | null {
       if (v.kind !== "enter" && v.kind !== "enterCompute") return s;
       if (!def.enter) return s;
       const x = currentValue(s);
-      const next = def.enter(commitEntry(s), v.id, x);
-      return { ...next, arith: { ...next.arith, entry: null }, view: { ...next.view, assigned: true, computed: false, entered: true } };
+      const next = syncX(def.enter(commitEntry(s), v.id, x), def, v.id);
+      return { ...next, view: { ...next.view, assigned: true, computed: false, entered: true } };
     }
     case "CPT": {
       if (!def.compute || v.kind === "setting" || v.kind === "auto") return s;
@@ -79,7 +88,7 @@ export function worksheetKey(s: CalcState, a: Action): CalcState | null {
       // CPT on an enter-only variable is an "advance" (AMORT P1/P2 next range, DEPR YR + 1), not a computation.
       const computed = v.kind === "compute" || v.kind === "enterCompute";
       const nv = def.vars(next).find((x) => x.id === (next.mode.kind === "ws" ? next.mode.varId : v.id)) ?? v;
-      const shown = nv.id !== v.id ? showVar(next, def, nv, computed) : next;
+      const shown = nv.id !== v.id ? showVar(next, def, nv, computed) : syncX(next, def, v.id);
       return { ...shown, view: { ...shown.view, assigned: true, computed, entered: false } };
     }
     case "SET": {
@@ -102,7 +111,7 @@ export function worksheetKey(s: CalcState, a: Action): CalcState | null {
     }
     case "CE_C": {
       // Clears a typed entry; with nothing typed, the device leaves the worksheet var displayed.
-      if (s.arith.entry !== null) return { ...s, arith: { ...s.arith, entry: null }, view: { ...s.view, assigned: true } };
+      if (s.arith.entry !== null) return { ...syncX(s, def, v.id), view: { ...s.view, assigned: true } };
       return s;
     }
     default:

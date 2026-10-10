@@ -268,3 +268,15 @@ describe("pp. 20–21 — resetting and defaults", () => {
     expect(renderLcd(runScript("2ND BGN")).ann.bgn).toBe(false);
   });
 });
+
+describe("TVM behavior the guidebook does not settle", () => {
+  // Every TVM example presses "=" before the TVM key (p. 30: "22 ÷ 12 = I/Y"). With an operation still
+  // pending, the engine assigns the operand being typed (12) and leaves "5 ×" pending, in standard mode
+  // and in a worksheet alike; the device may complete the calculation first.
+  it.todo("5 × 12 N with the multiplication pending: does N get 12 or 60?");
+
+  // Error 5 is listed for "FV, (N × PMT), and PV all have the same sign" and Error 7 for an I/Y that
+  // needs too many iterations (p. 80). With N = 0 the equation PV + FV = 0 does not depend on I/Y; the
+  // engine's iteration finds no root and shows Error 7, while "no solution" (Error 5) is also a fair reading.
+  it.todo("CPT I/Y with N = 0 and PMT ≠ 0: Error 5 or Error 7?");
+});

@@ -292,6 +292,17 @@ describe("p. 14 — last answer", () => {
     expect(value("2ND MEM 42 ENTER 2ND QUIT 2ND ANS")).toBe("42.00");
     expect(value("10 N 5 I/Y 100 +|- PV CPT FV CE|C 2ND ANS")).toBe("162.89");
   });
+
+  it("storing a TVM value is none of those, so ANS keeps the last answer", () => {
+    expect(value("6 × 7 = 360 N CE|C 2ND ANS")).toBe("42.00");
+  });
+});
+
+describe("p. 13 — repetition needs a constant", () => {
+  it("a repeated = without 2ND K does not repeat the operation", () => {
+    expect(value("2 + 3 = =")).toBe("5.00");
+    expect(value("2 + 2ND K 3 = =")).toBe("8.00");
+  });
 });
 
 describe("pp. 16–18 — worksheets", () => {

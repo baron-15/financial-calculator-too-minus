@@ -140,7 +140,6 @@
   flex: none;
   display: inline-flex;
   align-items: flex-end;
-  font-family: "DSEG14 Classic", ui-monospace, monospace;
   line-height: 1;
 }
 .ba-eq {
@@ -183,8 +182,24 @@
 .ba-seg7 {
   font-family: "DSEG7 Classic", ui-monospace, monospace;
 }
-.ba-seg14 {
-  font-family: "DSEG14 Classic", ui-monospace, monospace;
+/* Labels and text values: SVG segment glyphs (lcdSegments.ts), 1em tall like the DSEG7 digits. */
+.ba-segtext {
+  display: inline-flex;
+  align-items: flex-end;
+  vertical-align: bottom;
+}
+.ba-seg {
+  display: block;
+  flex: none;
+  height: 1em;
+  fill: currentColor;
+  overflow: visible;
+  filter: drop-shadow(0.35cqw 0.4cqw 0.15cqw rgba(0, 0, 0, 0.13));
+}
+.ba-seg-fallback {
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-weight: 700;
+  line-height: 1;
 }
 
 /* DSEG7 has no comma: draw it as a zero-width dot with a tail, where the period would sit. */

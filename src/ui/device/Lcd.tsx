@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { lcdText, type Annunciators, type Lcd as LcdModel } from "../../engine";
 import { fitLcd, isNumericValue, numericGlyphs } from "./lcdGlyphs";
+import { segPath, segPieces, type SegPiece } from "./lcdSegments";
 
 /** Indicators along the top of the LCD, left to right (docs/SPEC.md §11). */
 const ANNUNCIATORS: { key: keyof Annunciators; text: string; id: string }[] = [
@@ -24,8 +25,37 @@ export interface LcdProps {
   on: boolean;
 }
 
+/**
+ * Text drawn as segment shapes: one SVG per run of known glyphs. A character without a glyph (none
+ * today; see tests/ui/lcdCoverage.test.ts) falls back to a system font so it still shows.
+ */
+export function SegText({ text }: { text: string }) {
+  const runs: { glyphs: SegPiece[]; missing: string }[] = [];
+  for (const p of segPieces(text)) {
+    const last = runs.at(-1);
+    if (p.t === "missing") {
+      if (last && !last.glyphs.length) last.missing += p.ch;
+      else runs.push({ glyphs: [], missing: p.ch });
+    } else if (last && last.glyphs.length) last.glyphs.push(p);
+    else runs.push({ glyphs: [p], missing: "" });
+  }
+  return (
+    <span className="ba-segtext">
+      {runs.map((r, i) => {
+        if (!r.glyphs.length) return <span key={i} className="ba-seg-fallback">{r.missing}</span>;
+        const { d, width } = segPath(r.glyphs);
+        return (
+          <svg key={i} className="ba-seg" viewBox={`0 0 ${width} 1000`} style={{ width: `${width / 1000}em` }} aria-hidden="true" focusable="false">
+            <path d={d} />
+          </svg>
+        );
+      })}
+    </span>
+  );
+}
+
 function ValueGlyphs({ value }: { value: string }) {
-  if (!isNumericValue(value)) return <span className="ba-seg14">{value}</span>;
+  if (!isNumericValue(value)) return <SegText text={value} />;
   return (
     <span className="ba-seg7">
       {numericGlyphs(value).map((g, i) =>
@@ -49,8 +79,8 @@ export const Lcd = memo(function Lcd({ lcd, on }: LcdProps) {
           ))}
         </div>
         <div className="ba-main">
-          <span className={`ba-label${label ? "" : " is-empty"}`} data-testid="lcd-label" style={{ fontSize: `${size.labelSize}cqw` }}>
-            {label}
+          <span className={`ba-label${label ? "" : " is-empty"}`} data-testid="lcd-label" data-label={label} style={{ fontSize: `${size.labelSize}cqw` }}>
+            {label && <SegText text={label} />}
             <span className={`ba-eq${ann.assigned && label ? " is-lit" : ""}`} data-testid="ann-assigned" data-on={ann.assigned ? "true" : "false"}>
               =
             </span>

@@ -84,9 +84,12 @@ describe("LCD glyphs", () => {
     expect(numericGlyphs("1.5 12")).toEqual([{ t: "text", s: "1.5" }, { t: "blank" }, { t: "text", s: "12" }]);
   });
 
-  it("measures separators as zero width", () => {
+  it("measures separators as zero width, and text by its segment glyphs", () => {
     expect(textWidthEm("1,234.00", true)).toBeCloseTo(6 * 0.816);
-    expect(textWidthEm("AB C", false)).toBeCloseTo(3 * 0.816 + 0.2);
+    // A space in text is a full blank cell ("Error 5", "12-31-2003 SAT"); ² and ' are half cells.
+    expect(textWidthEm("AB C", false)).toBeCloseTo(4 * 0.816);
+    expect(textWidthEm("ΣX²", false)).toBeCloseTo(2.5 * 0.816);
+    expect(textWidthEm("x\u0304", false)).toBeCloseTo(0.816);
   });
 
   it("keeps the full size for ten digits and shrinks only when a long label needs room", () => {

@@ -48,8 +48,11 @@ export const LCD_GLASS = { x: 22, y: 88, w: 205.5, h: 54, r: 3.5 } as const;
 export const LCD_ANN = { top: 4.6, cap: 5.2 } as const;
 export const LCD_MAIN = { top: 16, height: 31, left: 4, right: 4 } as const;
 
-/** Faceplate lettering (wordmark baseline / cap height; caption baseline / cap height). */
-export const WORDMARK = { baseline: 57, cap: 16, x0: 77, x1: 172 } as const;
+/**
+ * Faceplate lettering. The wordmark keeps the device's baseline (57) and cap height (16) and the gap
+ * between its parts (≈5 units); the caption keeps its measured span.
+ */
+export const WORDMARK = { baseline: 57, cap: 16, gap: 5 } as const;
 export const CAPTION = { baseline: 163, cap: 5.4, x0: 76, x1: 174 } as const;
 
 // ---------------------------------------------------------------------------------------------

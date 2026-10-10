@@ -139,17 +139,20 @@ function CaseArt() {
       <path d={FACEPLATE_PATH} fill="url(#ba-face)" />
       <path d={FACEPLATE_PATH} fill="none" stroke="#000" strokeOpacity="0.25" strokeWidth="0.6" />
 
-      {/* Wordmark: heavy "BA", serif "II", light italic "Plus" (measured x positions, baseline 57) */}
-      <text className="ba-print-wordmark" y={WORDMARK.baseline} fill="#1d1d1d">
-        {/* Each part is stretched to its measured span: BA 77–107, II 112–124, Plus 131–172. */}
-        <tspan x={WORDMARK.x0} textLength={30} lengthAdjust="spacingAndGlyphs" fontFamily="'Fira Sans', sans-serif" fontWeight={800} fontSize={WORDMARK.cap / FIRA_CAP}>
-          BA
+      {/*
+        Our own wordmark, "B Too Minus", set in the three styles of the device's printing: a heavy sans,
+        a bold serif and a light italic sans, on the measured baseline and cap height, centered as one
+        group on the faceplate.
+      */}
+      <text className="ba-print-wordmark" x={DEVICE_W / 2} y={WORDMARK.baseline} textAnchor="middle" fill="#1d1d1d" data-testid="wordmark">
+        <tspan fontFamily="'Fira Sans', sans-serif" fontWeight={800} fontSize={WORDMARK.cap / FIRA_CAP}>
+          B
         </tspan>
-        <tspan x={112} textLength={12} lengthAdjust="spacingAndGlyphs" fontFamily="'STIX Two Text', serif" fontWeight={700} fontSize={WORDMARK.cap / STIX_CAP}>
-          II
+        <tspan dx={WORDMARK.gap} fontFamily="'STIX Two Text', serif" fontWeight={700} fontSize={WORDMARK.cap / STIX_CAP}>
+          Too
         </tspan>
-        <tspan x={131} textLength={41} lengthAdjust="spacingAndGlyphs" fontFamily="'Fira Sans', sans-serif" fontWeight={300} fontStyle="italic" fontSize={WORDMARK.cap / FIRA_CAP}>
-          Plus
+        <tspan dx={WORDMARK.gap * 1.3} fontFamily="'Fira Sans', sans-serif" fontWeight={300} fontStyle="italic" fontSize={WORDMARK.cap / FIRA_CAP}>
+          Minus
         </tspan>
       </text>
       <text

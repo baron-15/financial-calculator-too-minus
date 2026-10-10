@@ -370,7 +370,7 @@ All of these come from `renderLcd()` in `src/engine/lcd.ts`.
 | BOND (2ND 9) | SDT (enter, date), CPN (enter), RDT (enter, date), RV (enter), ACT/360 (setting), 2/Y / 1/Y (setting), YLD (enterCompute), PRI (enterCompute), AI (auto) | |
 | DEPR (2ND 4) | method (setting); DB% for DB/DBX (enter, shown with the method as label, e.g. `DB= 200.00`); LIF, M01, DT1 (SLF only), CST, SAL, YR (enter); DEP, RBV, RDV (auto) | Methods: SL, SYD, DB, DBX, plus SLF and DBF only when the EUR date or separator format is on. CPT on YR adds 1 ([E] p. 52; the p. 53 table prints `↓ 2ND ENTER`, a misprint). ↓ from RDV returns to YR |
 | DATA (2ND 7) | X01, Y01, …, X50, Y50 (enter) | Y defaults to 1 (the frequency in 1-V). INS and DEL work on the current point |
-| STAT (2ND 8) | method (setting: LIN, Ln, EXP, PWR, 1-V); n, x̄, Sx, σx, ȳ, Sy, σy, a, b, r (auto); X′, Y′ (enterCompute); Σx, Σx², Σy, Σy², Σxy (auto) | In 1-V only n, x̄, Sx, σx, Σx and Σx² are shown |
+| STAT (2ND 8) | method (setting: LIN, Ln, EXP, PWR, 1-V); n, x̄, Sx, σx, ȳ, Sy, σy, a, b, r (auto); X′, Y′ (enterCompute); ΣX, ΣX², ΣY, ΣY², ΣXY (auto) | In 1-V only n, x̄, Sx, σx, ΣX and ΣX² are shown (labels per §8) |
 | Δ% (2ND 5) | OLD, NEW, %CH, #PD (enterCompute) | #PD defaults to 1 |
 | ICONV (2ND 2) | NOM (enterCompute), EFF (enterCompute), C/Y (enter) | C/Y defaults to 1; CLR WORK keeps it |
 | PROFIT (2ND 3) | CST, SEL, MAR (enterCompute) | |

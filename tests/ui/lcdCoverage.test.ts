@@ -135,7 +135,7 @@ const shown = engineLcdStrings();
 describe("LCD glyph coverage", () => {
   it("collects the engine's labels and text values", () => {
     // Spot checks so a broken sampler cannot pass vacuously.
-    for (const l of ["PV", "I/Y", "CFo", "C24", "F24", "X50", "Y50", "x\u0304", "y\u0304", "σx", "ΣX²", "ΣXY", "X'", "%CH", "#PD", "DB", "DBX", "DT1", "RST", "US", "EUR"]) {
+    for (const l of ["PV", "I/Y", "CFo", "C24", "F24", "X50", "Y50", "x\u0304", "y\u0304", "σx", "ΣX²", "ΣXY", "X'", "%CH", "#PD", "DB", "DBX", "DT1", "RST", "US", "Eur"]) {
       expect(shown.labels, l).toContain(l);
     }
     for (const v of ["ACT", "360", "2/Y", "1/Y", "SL", "SYD", "SLF", "DBF", "LIN", "Ln", "1-V", "Chn", "AOS", "DEG", "RAD", "END", "BGN", "?", "Error 1", "Error 8"]) {

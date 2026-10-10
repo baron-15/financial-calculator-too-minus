@@ -71,17 +71,18 @@ test.describe("cash flows", () => {
     await expect(lcd(page)).toHaveText("F03= 4.00 ◄");
 
     // INS on C02 inserts an empty group there; the old C02/C03 become C03/C04.
+    // Every value of an existing group shows the ◄ entered mark (guidebook p. 42); the empty slot does not.
     await run(page, "↑ ↑ ↑");
-    await expect(lcd(page)).toHaveText("C02= 4,000.00");
+    await expect(lcd(page)).toHaveText("C02= 4,000.00 ◄");
     await run(page, "2ND INS");
-    await expectDown(page, ["C02= 0.00", "F02= 1.00", "C03= 4,000.00", "F03= 1.00", "C04= 5,000.00", "F04= 4.00"]);
+    await expectDown(page, ["C02= 0.00 ◄", "F02= 1.00 ◄", "C03= 4,000.00 ◄", "F03= 1.00 ◄", "C04= 5,000.00 ◄", "F04= 4.00 ◄"]);
     if (!isMobile) await expect(page.getByTestId("panel-cf").locator("tbody tr")).toHaveCount(5);
 
     // DEL on the inserted group closes the gap again.
     await run(page, "↑ ↑ ↑ ↑ ↑");
-    await expect(lcd(page)).toHaveText("C02= 0.00");
+    await expect(lcd(page)).toHaveText("C02= 0.00 ◄");
     await run(page, "2ND DEL");
-    await expectDown(page, ["C02= 4,000.00", "F02= 1.00", "C03= 5,000.00", "F03= 4.00", "C04= 0.00"]);
+    await expectDown(page, ["C02= 4,000.00 ◄", "F02= 1.00 ◄", "C03= 5,000.00 ◄", "F03= 4.00 ◄", "C04= 0.00"]);
     if (!isMobile) await expect(page.getByTestId("panel-cf").locator("tbody tr")).toHaveCount(4);
 
     await run(page, "NPV 20 ENTER ↓ CPT");
@@ -96,7 +97,7 @@ test.describe("cash flows", () => {
     await page.getByTestId("cf-load-calculator").click();
     await expect(page).toHaveURL(/\/$/);
     await run(page, "CF");
-    await expectDown(page, ["CFo= -7,000.00", "C01= 3,000.00", "F01= 1.00", "C02= 4,000.00", "F02= 1.00", "C03= 5,000.00", "F03= 4.00", "C04= 0.00"]);
+    await expectDown(page, ["CFo= -7,000.00", "C01= 3,000.00 ◄", "F01= 1.00 ◄", "C02= 4,000.00 ◄", "F02= 1.00 ◄", "C03= 5,000.00 ◄", "F03= 4.00 ◄", "C04= 0.00"]);
     await run(page, "NPV");
     await expect(lcd(page)).toHaveText("I= 20.00");
     await run(page, "↓");
@@ -220,7 +221,7 @@ test.describe("persistence", () => {
     await page.reload();
     await expect(lcd(page)).toHaveText("7.0000");
     await run(page, "CF");
-    await expectDown(page, ["CFo= -100.0000", "C01= 60.0000", "F01= 1.0000"]);
+    await expectDown(page, ["CFo= -100.0000 ◄", "C01= 60.0000 ◄", "F01= 1.0000 ◄"]);
     await run(page, "2ND QUIT RCL 9");
     await expect(lcd(page)).toHaveText("7.0000");
   });
@@ -297,16 +298,15 @@ test.describe("page theme", () => {
   });
 });
 
-test.describe("engine deviations from docs/SPEC.md (owned by the fidelity agent)", () => {
-  // SPEC §12 lists the STAT sums as Σx, Σx², Σy, Σy², Σxy (lowercase, like x̄ and Sx). The engine's
-  // STAT_LABELS (src/engine/worksheets/data.ts) use ΣX, ΣX², ΣY, ΣY², ΣXY. Remove .fixme once fixed.
-  test.fixme("STAT sum labels are lowercase as in SPEC §12", async ({ page }) => {
+test.describe("STAT labels", () => {
+  // The guidebook (p. 54, SPEC §8) prints the sums in uppercase: ΣX, ΣX², ΣY, ΣY², ΣXY.
+  test("STAT sum labels match the guidebook", async ({ page }) => {
     await run(page, "2ND DATA 2ND CLR_WORK 1 ENTER ↓ 2 ENTER ↓ 3 ENTER ↓ 5 ENTER 2ND STAT ↑");
-    await expect(lcd(page)).toHaveText(/^Σxy= /);
+    await expect(lcd(page)).toHaveText(/^ΣXY= /);
     await run(page, "↑");
-    await expect(lcd(page)).toHaveText(/^Σy²= /);
+    await expect(lcd(page)).toHaveText(/^ΣY²= /);
     await run(page, "↑ ↑ ↑");
-    await expect(lcd(page)).toHaveText(/^Σx= /);
+    await expect(lcd(page)).toHaveText(/^ΣX= /);
   });
 });
 

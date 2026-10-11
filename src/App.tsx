@@ -1,11 +1,9 @@
-import { NavLink, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { useCalcOnly } from "./hooks/useCalcOnly";
+import { useKeyTips } from "./hooks/useKeyTips";
 import { useTheme } from "./hooks/useTheme";
-import { EmulatorPage } from "./pages/Emulator";
-import { TvmToolPage } from "./pages/TvmTool";
-import { CashFlowToolPage } from "./pages/CashFlowTool";
-
-const navClass = ({ isActive }: { isActive: boolean }) =>
-  `px-3 py-1.5 rounded-md text-sm font-medium ${isActive ? "bg-[var(--accent)] text-black" : "hover:bg-black/5 dark:hover:bg-white/10"}`;
+import { EmulatorPage, type EmulatorLocationState } from "./pages/Emulator";
+import { HeaderSwitch } from "./ui/HeaderSwitch";
 
 function ThemeToggle() {
   const { theme, toggle } = useTheme();
@@ -26,30 +24,39 @@ function ThemeToggle() {
   );
 }
 
+/** The old tool pages now live in the calculator's feature block; their links open that block. */
+const legacy = (feature: EmulatorLocationState["feature"]) => <Navigate to="/" replace state={{ feature } satisfies EmulatorLocationState} />;
+
 export function App() {
+  const [tipsOn, setTipsOn] = useKeyTips();
+  const [calcOnly, setCalcOnly] = useCalcOnly();
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-[var(--panel-border)] px-4 py-2 flex flex-wrap items-center gap-2">
+      <header className="border-b border-[var(--panel-border)] px-4 py-2 flex flex-wrap items-center gap-x-4 gap-y-2">
         {/* Same wordmark as the calculator faceplate: heavy sans "BA", bold serif "Too", light italic "Minus". */}
-        <span className="mr-4 whitespace-nowrap text-[1.15rem] leading-none">
+        <span className="whitespace-nowrap text-[1.15rem] leading-none">
           <span style={{ fontFamily: "'Fira Sans', sans-serif", fontWeight: 800 }}>BA</span>{" "}
           <span style={{ fontFamily: "'STIX Two Text', serif", fontWeight: 700 }}>Too</span>{" "}
           <span style={{ fontFamily: "'Fira Sans', sans-serif", fontWeight: 300, fontStyle: "italic" }}>Minus</span>
         </span>
-        <nav className="order-last flex w-full flex-wrap gap-1 sm:order-none sm:w-auto">
-          <NavLink to="/" end className={navClass}>Calculator</NavLink>
-          <NavLink to="/tools/tvm" className={navClass}>TVM Tool</NavLink>
-          <NavLink to="/tools/cash-flow" className={navClass}>Cash Flow Tool</NavLink>
-        </nav>
-        <div className="ml-auto">
+        <div className="ml-auto flex flex-none items-center gap-2">
+          <HeaderSwitch label="Key tips" on={tipsOn} onChange={setTipsOn} testId="key-tips-switch" title="Show what each key does on hover or long-press" />
+          <HeaderSwitch
+            label="Calculator only"
+            on={calcOnly}
+            onChange={setCalcOnly}
+            testId="calc-only-switch"
+            title="Hide the side blocks for a plain calculator"
+          />
           <ThemeToggle />
         </div>
       </header>
       <main className="flex-1">
         <Routes>
-          <Route path="/" element={<EmulatorPage />} />
-          <Route path="/tools/tvm" element={<TvmToolPage />} />
-          <Route path="/tools/cash-flow" element={<CashFlowToolPage />} />
+          <Route path="/" element={<EmulatorPage tipsOn={tipsOn} calcOnly={calcOnly} onCalcOnlyChange={setCalcOnly} />} />
+          <Route path="/tools/tvm" element={legacy("tvm")} />
+          <Route path="/tools/cash-flow" element={legacy("cf")} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <footer className="border-t border-[var(--panel-border)] px-4 py-3 text-xs text-[var(--muted)]">

@@ -1,6 +1,5 @@
 /**
  * Continuous memory: save/restore the full calculator state in localStorage.
- * Shared contract for the emulator page (Agent E) and the tool pages' "Load into calculator" (Agent F).
  */
 import { initialState, type CalcState } from "./state";
 
@@ -37,9 +36,4 @@ export function saveState(s: CalcState): void {
   } catch {
     /* storage unavailable: run without persistence */
   }
-}
-
-/** Apply a change to the saved state (used by tool pages before navigating to the emulator). */
-export function updateSavedState(fn: (s: CalcState) => CalcState): void {
-  saveState(fn(loadState()));
 }

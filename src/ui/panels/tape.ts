@@ -3,14 +3,15 @@
  * - Consecutive digits and "." merge into one number token ("100").
  * - 2ND presses disappear; the following key shows its gold name ("CLR TVM", not "2ND FV").
  * - A new line starts after "=", ENTER, QUIT, and after a CPT (or "CPT <TVM key>") computation.
+ * - A value typed into a feature block is a line of its own ("PV = -100 (panel)").
  */
 import { KEY_BY_ID, type KeyId } from "../../engine";
-import type { LogEntry } from "../../hooks/calculatorReducer";
+import { isKeyEntry, type LogEntry } from "../../hooks/calculatorReducer";
 
 export interface TapeToken {
   text: string;
-  /** number: merged digits; key: face legend; second: gold 2ND function; pending: 2ND awaiting a key */
-  kind: "number" | "key" | "second" | "pending";
+  /** number: merged digits; key: face legend; second: gold 2ND function; pending: 2ND awaiting a key; note: a block edit */
+  kind: "number" | "key" | "second" | "pending" | "note";
 }
 
 const NUMBER_KEYS = new Set<KeyId>(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "DOT"]);
@@ -37,11 +38,21 @@ export function tokenizeTape(entries: readonly LogEntry[], pendingSecond = false
     line = [];
   };
   const nextKeyed = (i: number): LogEntry | undefined => {
-    for (let j = i + 1; j < entries.length; j++) if (entries[j]!.key !== "2ND") return entries[j];
+    for (let j = i + 1; j < entries.length; j++) {
+      const e = entries[j]!;
+      if (!isKeyEntry(e) || e.key !== "2ND") return e;
+    }
     return undefined;
   };
 
   entries.forEach((e, i) => {
+    if (!isKeyEntry(e)) {
+      newLine();
+      lines.push([{ text: e.note, kind: "note" }]);
+      register = null;
+      breakAfterTvm = false;
+      return;
+    }
     if (e.key === "2ND") return;
     const spec = KEY_BY_ID[e.key];
     if (register && !e.second && DIGIT_KEYS.has(e.key)) {
@@ -69,7 +80,7 @@ export function tokenizeTape(entries: readonly LogEntry[], pendingSecond = false
       newLine();
     } else if (action === "CPT") {
       const next = nextKeyed(i);
-      if (next && !next.second && TVM_KEYS.has(next.key)) breakAfterTvm = true;
+      if (next && isKeyEntry(next) && !next.second && TVM_KEYS.has(next.key)) breakAfterTvm = true;
       else if (next) newLine();
     } else if (breakAfterTvm && TVM_KEYS.has(e.key) && !e.second) {
       breakAfterTvm = false;
@@ -79,7 +90,8 @@ export function tokenizeTape(entries: readonly LogEntry[], pendingSecond = false
     }
   });
   flushNumber();
-  if (pendingSecond && entries.at(-1)?.key === "2ND") line.push({ text: "2ND", kind: "pending" });
+  const last = entries.at(-1);
+  if (pendingSecond && last && isKeyEntry(last) && last.key === "2ND") line.push({ text: "2ND", kind: "pending" });
   if (line.length) lines.push(line);
   return lines;
 }
@@ -94,11 +106,13 @@ const CLEAR_BOUNDARY = new Set<KeyId>(["CPT" /* QUIT */, "FV" /* CLR TVM */, "CE
 export function entriesSinceLastClear(entries: readonly LogEntry[]): LogEntry[] {
   let start = 0;
   entries.forEach((e, i) => {
-    if (e.second && CLEAR_BOUNDARY.has(e.key)) start = i + 1;
+    if (isKeyEntry(e) && e.second && CLEAR_BOUNDARY.has(e.key)) start = i + 1;
   });
   return entries.slice(start);
 }
 
 export function keysSinceLastClear(entries: readonly LogEntry[]): KeyId[] {
-  return entriesSinceLastClear(entries).map((e) => e.key);
+  return entriesSinceLastClear(entries)
+    .filter(isKeyEntry)
+    .map((e) => e.key);
 }

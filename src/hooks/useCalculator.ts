@@ -1,10 +1,12 @@
 /**
- * The emulator's state hook: engine reducer + continuous memory (localStorage) + keystroke log.
+ * The emulator's state hook: engine reducer + continuous memory (localStorage) + keystroke log + the
+ * feature block that follows the keys.
  */
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { renderLcd, type CalcState, type KeyId, type Lcd } from "../engine";
 import { loadState, saveState } from "../engine/persist";
-import { calcReducer, type CalcStore, type LogEntry } from "./calculatorReducer";
+import { initialFeatureContext, saveFeatureContext, type FeatureContext, type FeatureId, type GenericWorksheetId } from "../ui/panels/featureContext";
+import { calcReducer, isKeyEntry, type CalcStore, type LogEntry } from "./calculatorReducer";
 
 /** Debounce for persisting state after key presses. */
 export const SAVE_DEBOUNCE_MS = 250;
@@ -27,17 +29,25 @@ function safeRenderLcd(s: CalcState): Lcd {
   }
 }
 
-const initStore = (): CalcStore => ({ calc: loadState(), log: [] });
+const initStore = (): CalcStore => {
+  const calc = loadState();
+  return { calc, log: [], feature: initialFeatureContext(calc) };
+};
 
 export interface UseCalculator {
   state: CalcState;
   lcd: Lcd;
   pressKey: (key: KeyId) => void;
+  /** Apply a feature-block edit to the registers; `note` is shown on the tape. */
+  edit: (note: string, apply: (s: CalcState) => CalcState) => void;
   /** Last ~200 keys pressed, most recent last. */
   keystrokes: KeyId[];
-  /** Same log with whether each key was pressed as a 2ND function (for the tape). */
+  /** Same log with whether each key was pressed as a 2ND function, plus block edits (for the tape). */
   log: LogEntry[];
   resetLog: () => void;
+  /** The feature block on show. */
+  feature: FeatureContext;
+  selectFeature: (feature: FeatureId, worksheet?: GenericWorksheetId) => void;
 }
 
 export function useCalculator(): UseCalculator {
@@ -64,8 +74,7 @@ export function useCalculator(): UseCalculator {
     timer.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
   }, [store.calc, flush]);
 
-  // Save immediately when the page is hidden or the emulator unmounts (e.g. navigating to a tool page,
-  // which may then write its own update into the saved state).
+  // Save immediately when the page is hidden or the emulator unmounts.
   useEffect(() => {
     const onVisibility = () => {
       if (document.visibilityState === "hidden") flush();
@@ -79,10 +88,18 @@ export function useCalculator(): UseCalculator {
     };
   }, [flush]);
 
-  const pressKey = useCallback((key: KeyId) => dispatch({ type: "press", key }), []);
-  const resetLog = useCallback(() => dispatch({ type: "resetLog" }), []);
-  const lcd = useMemo(() => safeRenderLcd(store.calc), [store.calc]);
-  const keystrokes = useMemo(() => store.log.map((e) => e.key), [store.log]);
+  // The feature block changes rarely (only on a trigger key or a manual pick): save it right away.
+  useEffect(() => saveFeatureContext(store.feature), [store.feature]);
 
-  return { state: store.calc, lcd, pressKey, keystrokes, log: store.log, resetLog };
+  const pressKey = useCallback((key: KeyId) => dispatch({ type: "press", key }), []);
+  const edit = useCallback((note: string, apply: (s: CalcState) => CalcState) => dispatch({ type: "edit", note, apply }), []);
+  const resetLog = useCallback(() => dispatch({ type: "resetLog" }), []);
+  const selectFeature = useCallback(
+    (feature: FeatureId, worksheet?: GenericWorksheetId) => dispatch({ type: "selectFeature", feature, ...(worksheet ? { worksheet } : {}) }),
+    [],
+  );
+  const lcd = useMemo(() => safeRenderLcd(store.calc), [store.calc]);
+  const keystrokes = useMemo(() => store.log.filter(isKeyEntry).map((e) => e.key), [store.log]);
+
+  return { state: store.calc, lcd, pressKey, edit, keystrokes, log: store.log, resetLog, feature: store.feature, selectFeature };
 }

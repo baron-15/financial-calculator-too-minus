@@ -1,13 +1,20 @@
+/** The statistics feature block (2ND DATA / 2ND STAT): data points and results. */
 import { useMemo } from "react";
 import type { CalcState } from "../../engine";
 import { computeStats, type StatResult } from "../../engine/finance/stats";
 import { MAX_DATA_POINTS } from "../../engine/worksheets/data";
 import { num, whole } from "./fmt";
-import { FlashValue, PanelCard, Row, Rows } from "./PanelCard";
+import { FlashValue, Row, Rows } from "./PanelCard";
 
 const pad = (i: number) => String(i).padStart(2, "0");
 
-export function StatsPanel({ state, active, current }: { state: CalcState; active: boolean; current: string | null }) {
+/** Header text for the block, e.g. "LIN · 3 of 50 points". */
+export function statsMeta(state: CalcState): string {
+  const st = state.ws.stat;
+  return `${st.model} · ${st.points.length} of ${MAX_DATA_POINTS} points`;
+}
+
+export function StatsBlock({ state, active, current }: { state: CalcState; active: boolean; current: string | null }) {
   const st = state.ws.stat;
   const oneVar = st.model === "1-V";
   const result = useMemo<StatResult | null>(() => {
@@ -24,7 +31,7 @@ export function StatsPanel({ state, active, current }: { state: CalcState; activ
   const stat = (id: string) => ws === "STAT" && cur(id);
 
   return (
-    <PanelCard id="stats" title="Statistics" active={active} meta={`${st.model} · ${st.points.length} of ${MAX_DATA_POINTS} points`}>
+    <>
       {st.points.length === 0 ? (
         <p className="text-xs text-[var(--muted)]">Press 2ND DATA to enter X01, Y01, … then 2ND STAT for results.</p>
       ) : (
@@ -84,6 +91,6 @@ export function StatsPanel({ state, active, current }: { state: CalcState; activ
           )}
         </Rows>
       )}
-    </PanelCard>
+    </>
   );
 }

@@ -3,11 +3,11 @@ import { initialState, parseScript, runScript, type CalcState, type KeyId } from
 import { LIMITS } from "../../api/_lib/protocol";
 import { validateExplainRequest } from "../../api/_lib/schema";
 import { buildExplainRequest, formatKeystrokes, requestForLcd, requestKey } from "../../src/ui/explain/request";
-import { calcReducer, type CalcStore } from "../../src/hooks/calculatorReducer";
+import { calcReducer, emptyStore, type CalcStore } from "../../src/hooks/calculatorReducer";
 
 /** Key-log entries (with the real 2ND state) as the emulator records them. */
 const log = (keys: readonly KeyId[]) =>
-  keys.reduce<CalcStore>((st, key) => calcReducer(st, { type: "press", key }), { calc: initialState(), log: [] }).log;
+  keys.reduce<CalcStore>((st, key) => calcReducer(st, { type: "press", key }), emptyStore()).log;
 
 const TVM_SCRIPT = "2ND CLR_TVM 10 N 5 I/Y 100 +|- PV CPT FV";
 

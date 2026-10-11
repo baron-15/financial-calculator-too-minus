@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { initialState, renderLcd } from "../../src/engine";
-import { calcReducer, LOG_LIMIT, type CalcStore } from "../../src/hooks/calculatorReducer";
+import { describe, expect, it, vi } from "vitest";
+import { renderLcd } from "../../src/engine";
+import { calcReducer, emptyStore, isKeyEntry, LOG_LIMIT, type CalcStore, type KeyEntry } from "../../src/hooks/calculatorReducer";
+import { editTvm } from "../../src/ui/panels/edits";
 import { activePanelId, activeVarId } from "../../src/ui/panels/activePanel";
 import { storeAfter } from "./helpers";
 
@@ -8,8 +9,9 @@ describe("calcReducer", () => {
   it("presses keys through the engine and logs them", () => {
     const st = storeAfter("2 + 3 =");
     expect(renderLcd(st.calc).value).toBe("5.00");
-    expect(st.log.map((e) => e.key)).toEqual(["2", "ADD", "3", "EQUALS"]);
-    expect(st.log.every((e) => !e.second)).toBe(true);
+    const keys = st.log as KeyEntry[];
+    expect(keys.map((e) => e.key)).toEqual(["2", "ADD", "3", "EQUALS"]);
+    expect(keys.every((e) => !e.second)).toBe(true);
   });
 
   it("records whether a key was pressed as its 2ND function", () => {
@@ -23,10 +25,10 @@ describe("calcReducer", () => {
   });
 
   it(`keeps only the last ${LOG_LIMIT} keys`, () => {
-    let st: CalcStore = { calc: initialState(), log: [] };
+    let st: CalcStore = emptyStore();
     for (let i = 0; i < LOG_LIMIT + 25; i++) st = calcReducer(st, { type: "press", key: i % 2 ? "1" : "CE_C" });
     expect(st.log).toHaveLength(LOG_LIMIT);
-    expect(st.log.at(-1)!.key).toBe("CE_C");
+    expect(st.log.at(-1)).toEqual({ key: "CE_C", second: false });
   });
 
   it("clears the log without touching the calculator", () => {
@@ -35,6 +37,53 @@ describe("calcReducer", () => {
     expect(cleared.log).toEqual([]);
     expect(cleared.calc).toBe(st.calc);
     expect(calcReducer(cleared, { type: "resetLog" })).toBe(cleared);
+  });
+
+  it("applies a block edit and records it on the log as a note", () => {
+    const st = storeAfter("2 + 3 =");
+    const edited = calcReducer(st, {
+      type: "edit",
+      note: "PV = -100 (panel)",
+      apply: (s) => {
+        const r = editTvm(s, "pv", -100);
+        return r.ok ? r.state : s;
+      },
+    });
+    expect(edited.calc.ws.tvm.pv).toBe(-100);
+    expect(edited.log.at(-1)).toEqual({ note: "PV = -100 (panel)" });
+    expect(edited.log.filter(isKeyEntry)).toHaveLength(4);
+    expect(edited.feature).toBe(st.feature);
+  });
+
+  it("ignores an edit that changes nothing (no note on the tape)", () => {
+    const st = storeAfter("5");
+    expect(calcReducer(st, { type: "edit", note: "nothing", apply: (s) => s })).toBe(st);
+  });
+
+  it("keeps the store when an edit throws", () => {
+    const st = storeAfter("5");
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    const out = calcReducer(st, {
+      type: "edit",
+      note: "boom",
+      apply: () => {
+        throw new Error("boom");
+      },
+    });
+    quiet.mockRestore();
+    expect(out).toBe(st);
+  });
+
+  it("follows trigger keys with the feature block, and a manual pick presses no key", () => {
+    expect(storeAfter("5 PV").feature).toEqual({ feature: "tvm", worksheet: null });
+    expect(storeAfter("2ND DATA").feature).toEqual({ feature: "stats", worksheet: null });
+    expect(storeAfter("2ND DEPR 2ND QUIT 7").feature).toEqual({ feature: "worksheet", worksheet: "DEPR" });
+    const st = storeAfter("CF");
+    const picked = calcReducer(st, { type: "selectFeature", feature: "bond" });
+    expect(picked.feature.feature).toBe("bond");
+    expect(picked.calc).toBe(st.calc);
+    expect(picked.log).toBe(st.log);
+    expect(calcReducer(picked, { type: "selectFeature", feature: "bond" })).toBe(picked);
   });
 });
 

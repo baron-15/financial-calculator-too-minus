@@ -1,12 +1,11 @@
 /**
  * "Explain this result" box: streams an AI explanation for an ExplainRequest and renders it as Markdown
- * with KaTeX math. Used by ExplainPanel (emulator) and by the TVM / Cash Flow tool pages.
- * Behind the VITE_AI_EXPLAINER flag: when it is off, a "coming soon" note replaces the box and no
- * request is ever made.
+ * with KaTeX math. Used by ExplainPanel (the emulator page's Explain card).
+ * Behind the VITE_AI_EXPLAINER flag: when it is off, nothing renders and no request is ever made.
  */
 import { Suspense, lazy, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ExplainError, displayText, isAbortError, streamExplanation } from "./client";
-import { COMING_SOON_MESSAGE, aiExplainerEnabled } from "./flag";
+import { aiExplainerEnabled } from "./flag";
 import { requestKey, type ExplainRequest } from "./request";
 import "./explain.css";
 
@@ -33,25 +32,7 @@ const primary = `${buttonBase} bg-[var(--accent)] text-black hover:brightness-95
 const secondary = `${buttonBase} border border-[var(--panel-border)] hover:bg-[color-mix(in_srgb,var(--page-fg)_8%,transparent)]`;
 
 export function ExplainView({ enabled, ...props }: ExplainViewProps) {
-  return (enabled ?? aiExplainerEnabled()) ? <LiveExplainView {...props} /> : <ComingSoon title={props.title} />;
-}
-
-/** Shown while the explainer is switched off: same heading and frame, no button, no network. */
-function ComingSoon({ title = "Step-by-step explanation" }: Pick<ExplainViewProps, "title">) {
-  const headingId = useId();
-  const Root = title ? "section" : "div";
-  return (
-    <Root className="explain-root space-y-3 text-sm" {...(title ? { "aria-labelledby": headingId } : {})}>
-      {title && (
-        <h2 id={headingId} className="text-base font-semibold">
-          {title}
-        </h2>
-      )}
-      <p className="text-[var(--muted)]" data-testid="explain-coming-soon">
-        {COMING_SOON_MESSAGE}
-      </p>
-    </Root>
-  );
+  return (enabled ?? aiExplainerEnabled()) ? <LiveExplainView {...props} /> : null;
 }
 
 function LiveExplainView({ request, hint, title = "Step-by-step explanation", fetchImpl }: Omit<ExplainViewProps, "enabled">) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { LogEntry } from "../../hooks/calculatorReducer";
+import { isKeyEntry, type LogEntry } from "../../hooks/calculatorReducer";
 import { PanelCard } from "./PanelCard";
 import { tokenizeTape } from "./tape";
 
@@ -11,6 +11,7 @@ export interface TapePanelProps {
 
 export function TapePanel({ log, pendingSecond, onClear }: TapePanelProps) {
   const lines = useMemo(() => tokenizeTape(log, pendingSecond), [log, pendingSecond]);
+  const keys = useMemo(() => log.filter(isKeyEntry).length, [log]);
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,7 +23,7 @@ export function TapePanel({ log, pendingSecond, onClear }: TapePanelProps) {
     <PanelCard
       id="tape"
       title="Keystroke tape"
-      meta={log.length ? `${log.length} keys` : undefined}
+      meta={keys ? `${keys} ${keys === 1 ? "key" : "keys"}` : undefined}
       actions={
         <button type="button" className="panel-button" onClick={onClear} disabled={log.length === 0}>
           Clear

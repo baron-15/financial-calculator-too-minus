@@ -46,6 +46,17 @@ describe("tokenizeTape", () => {
     expect(text(tape("5 2ND 2ND 6"))).toEqual(["56"]);
   });
 
+  it("shows a block edit as a line of its own, between key lines", () => {
+    const st = storeAfter("12 +");
+    const log = [...st.log, { note: "PV = -100 (panel)" }, ...storeAfter("CPT FV").log];
+    const lines = tokenizeTape(log);
+    expect(text(lines)).toEqual(["12 +", "PV = -100 (panel)", "CPT FV"]);
+    expect(lines[1]).toEqual([{ text: "PV = -100 (panel)", kind: "note" }]);
+    // A note between STO and its digit ends the register wait: the digit is a number again.
+    expect(text(tokenizeTape([...storeAfter("5 STO").log, { note: "x" }, ...storeAfter("3").log]))).toEqual(["5 STO", "x", "3"]);
+    expect(keysSinceLastClear(log)).toEqual(["1", "2", "ADD", "CPT", "FV"]);
+  });
+
   it("returns no lines for an empty log", () => {
     expect(tokenizeTape([])).toEqual([]);
   });

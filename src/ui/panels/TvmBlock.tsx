@@ -57,9 +57,11 @@ export function TvmBlock({ state, active, current, onEdit, onPressKeys }: BlockP
   // The last register a CPT button computed: its errors get a friendly message here, and the formulas follow it.
   const [ran, setRan] = useState<TvmVar | null>(null);
   const [lastTarget, setLastTarget] = useState<TvmVar>("fv");
+  // Forget it once the calculator shows no error (the computation worked, or CE|C cleared it), so a later
+  // error from the keypad is not explained as this button's.
   useEffect(() => {
     if (state.view.error === null) setRan(null);
-  }, [state.view.error]);
+  }, [state]);
   useEffect(() => {
     if (computed) setLastTarget(computed);
   }, [computed]);
@@ -69,6 +71,8 @@ export function TvmBlock({ state, active, current, onEdit, onPressKeys }: BlockP
   const [showAll, setShowAll] = useState(false);
 
   const input = useMemo<TvmInput>(() => ({ n: t.n, iy: t.iy, pv: t.pv, pmt: t.pmt, fv: t.fv, py: t.py, cy: t.cy, bgn: t.bgn }), [t]);
+  // A new set of registers starts the schedule at its preview length again.
+  useEffect(() => setShowAll(false), [input]);
   const timeline = useMemo(() => (tab === "timeline" ? tvmTimeline(input, { lumpSums }) : null), [tab, input, lumpSums]);
   const schedule = useMemo(() => (tab === "amort" ? scheduleFor(input, showAll) : null), [tab, input, showAll]);
 

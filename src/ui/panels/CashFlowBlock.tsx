@@ -52,9 +52,11 @@ export function CashFlowBlock({ state, active, current, onEdit, onPressKeys }: B
 
   // Which Compute button ran last: its errors get a friendly message until CE|C clears them.
   const [ran, setRan] = useState<"npv" | "irr" | null>(null);
+  // Forget it once the calculator shows no error (the computation worked, or CE|C cleared it), so a later
+  // error from the keypad is not explained as this button's.
   useEffect(() => {
     if (state.view.error === null) setRan(null);
-  }, [state.view.error]);
+  }, [state]);
   const [tab, setTab] = useState<SubTab>("chart");
 
   const edit = (note: string, fn: (s: CalcState) => EditResult) => runEdit(state, onEdit, note, fn);

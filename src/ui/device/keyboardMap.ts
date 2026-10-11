@@ -97,11 +97,21 @@ interface TargetLike {
   closest?(selector: string): unknown;
 }
 
-/** Keystrokes typed into form fields belong to the field, not the calculator. */
-export function isTypingTarget(t: TargetLike | null | undefined): boolean {
+/**
+ * Keystrokes typed into form fields belong to the field, not the calculator. A checkbox or radio button
+ * (the feature blocks' END/BGN, "Show PV and FV", worksheet chips) only keeps the keys it uses itself,
+ * the arrows for a radio group, so digits typed after clicking one still reach the calculator.
+ */
+export function isTypingTarget(t: TargetLike | null | undefined, key?: string): boolean {
   if (!t) return false;
   const tag = (t.tagName ?? "").toUpperCase();
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (tag === "INPUT") {
+    const type = (t.getAttribute?.("type") ?? "text").toLowerCase();
+    if (type === "checkbox") return false;
+    if (type === "radio") return key?.startsWith("Arrow") ?? false;
+    return true;
+  }
+  if (tag === "TEXTAREA" || tag === "SELECT") return true;
   if (t.isContentEditable) return true;
   return t.getAttribute?.("role") === "textbox";
 }

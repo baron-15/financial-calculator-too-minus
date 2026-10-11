@@ -33,7 +33,7 @@ export function usePhysicalKeyboard(mode: CalcState["mode"]["kind"], onKey: (key
     const onKeyDown = (e: KeyboardEvent) => {
       shift.down(e.key, e.repeat);
       pointerFocus = false;
-      if (e.defaultPrevented || isTypingTarget(e.target as HTMLElement | null)) return;
+      if (e.defaultPrevented || isTypingTarget(e.target as HTMLElement | null, e.key)) return;
       if (e.key === "Enter" && (e.target === tabbedKey || ownsEnterKey(e.target as HTMLElement | null))) return;
       const key = keyFromKeyboard(e, modeRef.current);
       if (!key) return;

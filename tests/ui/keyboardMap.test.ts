@@ -91,6 +91,15 @@ describe("focus helpers", () => {
     expect(isTypingTarget(null)).toBe(false);
   });
 
+  it("lets keys through a checkbox or radio, except a radio group's arrows", () => {
+    expect(isTypingTarget(el("input", { type: "text" }), "5")).toBe(true);
+    expect(isTypingTarget(el("input", { type: "checkbox" }), "5")).toBe(false);
+    expect(isTypingTarget(el("input", { type: "checkbox" }), "ArrowDown")).toBe(false);
+    expect(isTypingTarget(el("input", { type: "radio" }), "5")).toBe(false);
+    expect(isTypingTarget(el("input", { type: "radio" }), "ArrowDown")).toBe(true);
+    expect(isTypingTarget(el("input", { type: "RADIO" }))).toBe(false); // a lone Shift is still 2ND
+  });
+
   it("lets other controls keep Enter, but not calculator keys", () => {
     expect(ownsEnterKey(el("BUTTON"))).toBe(true);
     expect(ownsEnterKey(el("A"))).toBe(true);

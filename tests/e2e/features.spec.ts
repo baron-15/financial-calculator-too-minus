@@ -179,11 +179,21 @@ test.describe("TVM block", () => {
     await expect(page.getByTestId("tvm-error")).toContainText("Error 5");
     await run(page, "CE|C");
     await expect(page.getByTestId("tvm-error")).toHaveCount(0);
+    // A later error from the keypad is not the block's: the LCD shows it, the block stays quiet.
+    await page.getByTestId("tvm-cpt-fv").click(); // I/Y = 0: FV = −(PV + PMT·N) = −100
+    await expect(lcd(page)).toHaveText("FV= -100.00 *");
+    await expect(page.getByTestId("tvm-error")).toHaveCount(0);
+    await run(page, "1 ÷ 0 =");
+    await expect(lcd(page)).toHaveText("Error 1");
+    await expect(page.getByTestId("tvm-error")).toHaveCount(0);
   });
 
   test("END / BGN sets the timing and the BGN annunciator", async ({ page }) => {
     await page.getByTestId("tvm-timing").getByText("BGN").click();
     await expect(page.getByTestId("ann-bgn")).toHaveAttribute("data-on", "true");
+    // The radio keeps focus, but typing still goes to the calculator.
+    await page.keyboard.type("42");
+    await expect(lcd(page)).toHaveText("42");
     await run(page, "2ND BGN");
     await expect(lcd(page)).toHaveText("BGN");
   });

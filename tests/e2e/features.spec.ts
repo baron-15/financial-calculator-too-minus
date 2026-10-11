@@ -192,6 +192,14 @@ test.describe("TVM block", () => {
     await expect(page.getByTestId("tvm-summary")).toContainText("Nothing in the TVM registers yet");
   });
 
+  test("digits typed while the example list has focus go to the calculator", async ({ page }) => {
+    await page.getByTestId("tvm-example").focus();
+    await page.keyboard.type("42");
+    await expect(lcd(page)).toHaveText("42");
+    await expect(page.getByTestId("tvm-example")).toBeFocused();
+    await expect(page.getByTestId("tape")).not.toContainText("(panel)"); // nothing was loaded
+  });
+
   test("mortgage: PMT −729.13, the summary, a 360-row schedule, CSV export, formulas", async ({ page }) => {
     await page.getByTestId("tvm-example").selectOption("mortgage");
     await expect(lcd(page)).toHaveText("PMT= -729.13 *");

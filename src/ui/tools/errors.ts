@@ -1,4 +1,4 @@
-/** Map engine CalcErrors to friendly, actionable messages for the tool pages. */
+/** Map engine CalcErrors to friendly, actionable messages for the TVM and cash-flow blocks. */
 import { ERROR_MESSAGES, isCalcError } from "../../engine/errors";
 import type { TvmVar } from "../../engine/finance/tvm";
 

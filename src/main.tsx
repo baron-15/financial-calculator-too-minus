@@ -6,7 +6,7 @@ import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {/* Hash URLs (/#/tools/tvm) so every page loads from GitHub Pages, which has no SPA fallback. */}
+    {/* Hash URLs (/#/…) so every route loads from GitHub Pages, which has no SPA fallback. */}
     <HashRouter>
       <App />
     </HashRouter>

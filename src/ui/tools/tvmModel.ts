@@ -1,4 +1,8 @@
-/** TVM tool page model: form state, validation, solving, chart data and exports. Pure (no React / DOM). */
+/**
+ * TVM model from the former TVM tool page: form state, validation, solving, chart data and exports.
+ * The TVM block uses the examples, the timeline, the schedule and its CSV; it edits the calculator's own
+ * registers (ui/panels/edits.ts) rather than this form. Pure (no React / DOM).
+ */
 import { amortSchedule, type AmortRow } from "../../engine/finance/amort";
 import { periodicRate, solveTvm, type TvmInput, type TvmVar } from "../../engine/finance/tvm";
 import type { TvmData } from "../../engine/worksheets/tvm";
@@ -100,7 +104,7 @@ export function solveTvmForm(form: TvmForm): TvmOutcome {
   }
 }
 
-/** Calculator registers for "Open in calculator": the solved values, or the form as typed (blank/invalid → 0). */
+/** Calculator registers for a form (e.g. an example): the solved values, or the form as typed (blank/invalid → 0). */
 export function toTvmData(form: TvmForm, solved: TvmInput | null): TvmData {
   if (solved) return { n: solved.n, iy: solved.iy, pv: solved.pv, pmt: solved.pmt, fv: solved.fv, py: solved.py, cy: solved.cy, bgn: solved.bgn };
   const v = (f: TvmField, fallback: number) => {

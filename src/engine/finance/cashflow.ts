@@ -28,7 +28,7 @@ export const MAX_CF_FREQ = 9999;
 
 /**
  * Enforce the device limits (for the CF worksheet): at most 24 groups and every frequency in
- * 0.5 … 9,999, else CalcError(4). `npv` and `irr` do not call this, so tool pages may exceed it.
+ * 0.5 … 9,999, else CalcError(4). `npv` and `irr` do not call this.
  */
 export function validateCashFlows(s: CashFlowSeries): void {
   if (s.groups.length > MAX_CF_GROUPS) throw new CalcError(4);

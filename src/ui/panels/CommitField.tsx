@@ -3,7 +3,7 @@
  * while focused it holds a local draft at full precision and commits on Enter or blur. Junk is rejected
  * with an inline message and the register keeps its old value; Esc reverts the draft.
  */
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { parseNumber } from "../tools/numbers";
 
 /** Text for editing a stored value: the full 13-digit precision, no separators ("-729.1327033594"). */
@@ -12,7 +12,7 @@ export function editText(x: number): string {
 }
 
 export interface CommitFieldProps {
-  /** Accessible name (the visible label is rendered by the caller, or hidden via `label`). */
+  /** Accessible name (any visible label is rendered by the caller). */
   label: string;
   value: number;
   /** The value as the LCD shows it, displayed while the field is not being edited. */
@@ -25,15 +25,15 @@ export interface CommitFieldProps {
   current?: boolean;
   testId?: string;
   className?: string;
-  /** Extra content under the field (hint), replaced by the error when there is one. */
-  hint?: ReactNode;
 }
 
-export function CommitField({ label, value, display, onCommit, blankAs = 0, current = false, testId, className = "", hint }: CommitFieldProps) {
+export function CommitField({ label, value, display, onCommit, blankAs = 0, current = false, testId, className = "" }: CommitFieldProps) {
   const id = useId();
   const msgId = `${id}-msg`;
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A message about a rejected value goes stale once the register changes some other way (keys, examples).
+  useEffect(() => setError(null), [value]);
 
   const input = useRef<HTMLInputElement>(null);
   // Select the whole value whenever a new draft is written into the field (on focus, after Enter), so
@@ -72,7 +72,7 @@ export function CommitField({ label, value, display, onCommit, blankAs = 0, curr
         spellCheck={false}
         aria-label={label}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error || hint ? msgId : undefined}
+        aria-describedby={error ? msgId : undefined}
         data-testid={testId}
         className={`block-input${current ? " is-current" : ""}${error ? " is-invalid" : ""}`}
         value={draft ?? display}
@@ -107,9 +107,9 @@ export function CommitField({ label, value, display, onCommit, blankAs = 0, curr
           }
         }}
       />
-      {(error || hint) && (
-        <p id={msgId} className={`mt-1 text-xs ${error ? "text-[var(--tool-error)]" : "text-[var(--muted)]"}`} role={error ? "alert" : undefined}>
-          {error ?? hint}
+      {error && (
+        <p id={msgId} className="mt-1 text-xs text-[var(--tool-error)]" role="alert">
+          {error}
         </p>
       )}
     </div>

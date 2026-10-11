@@ -1,4 +1,8 @@
-/** Cash Flow tool page model: editable groups, validation, NPV/IRR, chart data. Pure (no React / DOM). */
+/**
+ * Cash-flow model from the former Cash Flow tool page: editable groups, validation, NPV/IRR, chart data.
+ * The cash-flow block uses the guidebook example and the chart data; it edits the calculator's own CF
+ * data (ui/panels/edits.ts) rather than this form. Pure (no React / DOM).
+ */
 import { expandCashFlows, irr, npv, type CashFlowGroup, type CashFlowSeries } from "../../engine/finance/cashflow";
 import { MAX_CF_GROUPS } from "../../engine/worksheets/cf";
 import type { ExplainRequest } from "../explain/request";

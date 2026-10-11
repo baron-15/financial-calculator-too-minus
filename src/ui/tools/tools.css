@@ -1,5 +1,5 @@
 /*
- * Tool-page tokens. Chart colors are the validated diverging pair (inflow blue / outflow red) plus green for
+ * Feature-block tokens (TVM and cash-flow charts, errors). Chart colors are the validated diverging pair (inflow blue / outflow red) plus green for
  * the cumulative line, stepped separately for light and dark surfaces (dataviz palette, checked with the
  * CVD validator). Dark values apply for OS dark mode and for data-theme="dark", like src/index.css.
  */

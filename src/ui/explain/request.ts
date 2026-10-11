@@ -186,7 +186,7 @@ export function requestForLcd(state: CalcState, lcd: Pick<Lcd, "label" | "value"
   };
 }
 
-/** LCD-style text for a value (DEC 2, US separators), as the tool pages show results. */
+/** LCD-style text for a value (DEC 2, US separators). */
 export function lcdNumber(x: number, dec = 2): string {
   return formatNumber(x, { dec, separator: "US" });
 }

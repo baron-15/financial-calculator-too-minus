@@ -48,7 +48,7 @@ export interface CfData {
   cf0Entered?: boolean;
 }
 export const CF_DEFAULTS: CfData = { cf0: 0, groups: [], i: 0, npv: 0, irr: 0, npvValid: false, irrValid: false };
-// Device limits live in the finance layer so the worksheet, tool page and validator agree.
+// Device limits live in the finance layer so the worksheet, the cash-flow block and the validator agree.
 export { MAX_CF_GROUPS, MIN_CF_FREQ as MIN_FREQ, MAX_CF_FREQ as MAX_FREQ } from "../finance/cashflow";
 
 type CfRef = { kind: "cf0" } | { kind: "c" | "f"; /** 0-based group index */ j: number };

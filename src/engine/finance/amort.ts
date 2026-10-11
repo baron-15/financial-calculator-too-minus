@@ -86,7 +86,7 @@ export function amortize(t: TvmInput, p1: number, p2: number, dec: number): Amor
   return { bal: balEnd, prn, int };
 }
 
-/** Full schedule (used by the TVM tool page). One row per period 1..n. */
+/** Full schedule (the TVM block's amortization table). One row per period 1..n. */
 export interface AmortRow {
   period: number;
   beginBalance: number;

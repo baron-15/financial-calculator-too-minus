@@ -1,5 +1,5 @@
 /**
- * Recharts views for the tool pages: the TVM cash-flow timeline (inflow / outflow bars) and the cash-flow
+ * Recharts views for the TVM and cash-flow blocks: the TVM cash-flow timeline (inflow / outflow bars) and the cash-flow
  * chart (bars plus cumulative discounted line on the same currency axis). Each ships a table view.
  */
 import {

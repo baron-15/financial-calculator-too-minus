@@ -2,7 +2,7 @@
  * Faces used on the device skin (all SIL OFL, self-hosted by Vite; see THIRD_PARTY_NOTICES.md):
  * - Fira Sans Condensed: key legends, gold 2ND legends, LCD indicators (a humanist condensed sans,
  *   matching the printed legends);
- * - Fira Sans: the "BA" and "Plus" of the wordmark, the BUSINESS ANALYST caption;
+ * - Fira Sans: the "BA" and "Plus" of the wordmark, the BIZNUS ANALYST caption;
  * - STIX Two Text: the italic math x / y on √x, x², 1/x, yˣ, eˣ, x! and the serif "II".
  * LCD characters are drawn as SVG segments (lcdSegments.ts), not with a font.
  */

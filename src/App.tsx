@@ -30,7 +30,12 @@ export function App() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-[var(--panel-border)] px-4 py-2 flex flex-wrap items-center gap-2">
-        <span className="font-bold mr-4">BA II Plus Online</span>
+        {/* Same wordmark as the calculator faceplate: heavy sans "B", bold serif "Too", light italic "Minus". */}
+        <span className="mr-4 whitespace-nowrap text-[1.15rem] leading-none">
+          <span style={{ fontFamily: "'Fira Sans', sans-serif", fontWeight: 800 }}>B</span>{" "}
+          <span style={{ fontFamily: "'STIX Two Text', serif", fontWeight: 700 }}>Too</span>{" "}
+          <span style={{ fontFamily: "'Fira Sans', sans-serif", fontWeight: 300, fontStyle: "italic" }}>Minus</span>
+        </span>
         <nav className="order-last flex w-full flex-wrap gap-1 sm:order-none sm:w-auto">
           <NavLink to="/" end className={navClass}>Calculator</NavLink>
           <NavLink to="/tools/tvm" className={navClass}>TVM Tool</NavLink>

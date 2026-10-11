@@ -53,7 +53,13 @@ export const LCD_MAIN = { top: 16, height: 31, left: 4, right: 4 } as const;
  * between its parts (≈5 units); the caption keeps its measured span.
  */
 export const WORDMARK = { baseline: 57, cap: 16, gap: 5 } as const;
-export const CAPTION = { baseline: 163, cap: 5.4, x0: 76, x1: 174 } as const;
+/**
+ * Caption under the LCD. The device's "BUSINESS ANALYST" spans x 76–174: 66.9 units of glyphs plus 2.07
+ * units between letters. Our "BIZNUS ANALYST" keeps that letter-spacing (58.4 + 13 × 2.07 = 85.3 units),
+ * centred on the same point (125). If CAPTION_TEXT changes, re-measure and recompute x0/x1.
+ */
+export const CAPTION_TEXT = "BIZNUS ANALYST";
+export const CAPTION = { baseline: 163, cap: 5.4, x0: 82.4, x1: 167.6 } as const;
 
 // ---------------------------------------------------------------------------------------------
 // Keys

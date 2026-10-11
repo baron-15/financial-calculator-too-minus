@@ -1,4 +1,4 @@
-# BA II Plus Online
+# B Too Minus Online
 
 A faithful web recreation of the Texas Instruments **BA II Plus** financial calculator (standard model). It has the real key layout, LCD indicators, and worksheet keystroke behavior, plus live side panels, a TVM tool, a Cash Flow tool, and an AI step-by-step explainer.
 

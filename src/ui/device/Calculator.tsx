@@ -6,7 +6,7 @@
  */
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ALL_KEYS, type KeyId, type Lcd as LcdModel } from "../../engine";
-import { BODY_PATH, CAPTION, COLORS, DEVICE_H, DEVICE_W, FACEPLATE_PATH, KEY_BOXES, SECOND_LABEL, TRIM_PATH, WORDMARK } from "./geometry";
+import { BODY_PATH, CAPTION, CAPTION_TEXT, COLORS, DEVICE_H, DEVICE_W, FACEPLATE_PATH, KEY_BOXES, SECOND_LABEL, TRIM_PATH, WORDMARK } from "./geometry";
 import { KeyTip, type KeyTipPosition } from "./KeyTip";
 import { Keypad, type TipRequest } from "./Keypad";
 import { Lcd } from "./Lcd";
@@ -165,7 +165,7 @@ function CaseArt() {
         fontSize={CAPTION.cap / FIRA_CAP}
         fill="#262626"
       >
-        BUSINESS ANALYST
+        {CAPTION_TEXT}
       </text>
 
       {/* Gold 2ND legends, centered 3.5 units above each key */}

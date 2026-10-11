@@ -1,0 +1,390 @@
+/*
+ * BA II Plus device skin. Geometry comes from geometry.ts (measured from TI's product render); here
+ * every size is in device units: --u = 1/250 of the device width, so the device scales as one piece.
+ * Colors are fixed (not page tokens): the device looks the same in light and dark page themes.
+ */
+
+.ba-shell {
+  container-type: inline-size;
+  position: relative;
+  /* Real proportions (250 × 506); on wide screens as large as fits the viewport height (300–380 px). */
+  width: min(100%, max(300px, min(380px, calc((100dvh - 8rem) / 2.024))));
+  margin-inline: auto;
+}
+/* Phones: fill the column, so keys stay comfortably large (the page scrolls). */
+@media (max-width: 640px) {
+  .ba-shell {
+    width: min(100%, 420px);
+  }
+}
+
+.ba-device {
+  --u: 0.4cqw;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 250 / 506;
+  filter: drop-shadow(0 calc(var(--u) * 5) calc(var(--u) * 8) rgba(0, 0, 0, 0.42));
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ba-case {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.ba-print-math {
+  font-family: "STIX Two Text", serif;
+  font-style: italic;
+  font-weight: 600;
+}
+
+/* ---- LCD ---- */
+
+.ba-bezel {
+  position: absolute;
+  border-radius: calc(var(--u) * 6);
+  background: linear-gradient(180deg, #fbfbf9, #ecece8);
+  box-shadow:
+    0 0 0 calc(var(--u) * 0.35) rgba(0, 0, 0, 0.28),
+    inset 0 calc(var(--u) * -0.4) 0 rgba(0, 0, 0, 0.08);
+}
+
+.ba-lcd {
+  --ink: #141812;
+  position: absolute;
+  overflow: hidden;
+  border-radius: calc(var(--u) * 3.5);
+  background: linear-gradient(180deg, #a8b19b 0%, #9fa993 55%, #959f89 100%);
+  box-shadow:
+    inset 0 calc(var(--u) * 0.9) calc(var(--u) * 1.6) rgba(0, 0, 0, 0.3),
+    inset 0 0 0 calc(var(--u) * 0.35) rgba(0, 0, 0, 0.3);
+}
+
+.ba-ann {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1.2em;
+  font-family: "Fira Sans Condensed", sans-serif;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ba-ann-item {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  color: transparent;
+}
+
+.ba-ann-item.is-lit {
+  color: var(--ink);
+}
+
+.ba-label,
+.ba-eq,
+.ba-value {
+  position: absolute;
+  display: block;
+  line-height: 0;
+}
+
+/* Segments: dark ink with the faint shadow real LCD segments cast on the reflector. */
+.ba-seg {
+  display: block;
+  fill: var(--ink);
+  filter: drop-shadow(calc(var(--u) * 0.25) calc(var(--u) * 0.35) 0 rgba(0, 0, 0, 0.12));
+}
+
+.ba-eq .ba-seg {
+  fill: transparent;
+  filter: none;
+}
+
+.ba-eq.is-lit .ba-seg {
+  fill: var(--ink);
+  filter: drop-shadow(calc(var(--u) * 0.25) calc(var(--u) * 0.35) 0 rgba(0, 0, 0, 0.12));
+}
+
+.ba-lcd.is-off .ba-ann-item,
+.ba-lcd.is-off .ba-seg {
+  visibility: hidden;
+}
+
+/* ---- Keypad ---- */
+
+.ba-keypad {
+  position: absolute;
+  inset: 0;
+}
+
+/* The cell is the hit area (key box + HIT_PAD); the visible key is .ba-key-face inside it. */
+.ba-cell {
+  position: absolute;
+}
+
+.ba-key {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  font: inherit;
+}
+
+.ba-key:focus {
+  outline: none;
+}
+
+.ba-key-face {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: filter 80ms ease-out;
+}
+
+/* Shapes (measured from the photos):
+ * lozenge: flat top, rounded top corners, bottom edge bowed outward (function, TVM, 2ND keys)
+ * shield:  flat top with tight corners, deep "U" bottom (digits, operator column)
+ * tall:    rounded top, "U" bottom (CE|C) */
+.ba-shape--lozenge .ba-key-face {
+  border-radius: 18% 18% 26% 26% / 36% 36% 58% 58%;
+}
+.ba-shape--shield .ba-key-face {
+  border-radius: 11% 11% 38% 38% / 15% 15% 52% 52%;
+}
+.ba-shape--tall .ba-key-face {
+  border-radius: 18% 18% 36% 36% / 24% 24% 50% 50%;
+}
+
+/* Colors sampled from TI's render and the retail photo */
+.ba-color--dark .ba-key-face {
+  color: #fff;
+  background: linear-gradient(180deg, #3b3b3b 0%, #2f2f2f 34%, #2a2a2a 72%, #222 100%);
+  box-shadow:
+    inset 0 calc(var(--u) * 0.45) 0 rgba(255, 255, 255, 0.09),
+    inset 0 calc(var(--u) * -0.8) calc(var(--u) * 0.7) rgba(0, 0, 0, 0.35),
+    0 calc(var(--u) * 0.8) 0 #0c0c0c,
+    0 calc(var(--u) * 1.4) calc(var(--u) * 1.8) rgba(0, 0, 0, 0.6);
+}
+.ba-color--white .ba-key-face {
+  color: #262727;
+  background: linear-gradient(180deg, #fff 0%, #f5f5f5 40%, #e9e9e9 78%, #d2d2d2 100%);
+  box-shadow:
+    inset 0 0 0 calc(var(--u) * 0.55) rgba(0, 0, 0, 0.16),
+    inset 0 calc(var(--u) * -0.9) calc(var(--u) * 0.8) rgba(0, 0, 0, 0.16),
+    0 calc(var(--u) * 0.8) 0 #7e7e7e,
+    0 calc(var(--u) * 1.4) calc(var(--u) * 1.8) rgba(0, 0, 0, 0.6);
+}
+.ba-color--tan .ba-key-face {
+  color: #fbfaf6;
+  background: linear-gradient(180deg, #f0e2bf 0%, #e6d6ad 40%, #ddcb9f 78%, #c9b58a 100%);
+  box-shadow:
+    inset 0 calc(var(--u) * -0.9) calc(var(--u) * 0.8) rgba(80, 60, 20, 0.18),
+    0 calc(var(--u) * 0.8) 0 #7d6f50,
+    0 calc(var(--u) * 1.4) calc(var(--u) * 1.8) rgba(0, 0, 0, 0.6);
+}
+.ba-color--grey .ba-key-face {
+  color: #fff;
+  background: linear-gradient(180deg, #aca8a3 0%, #a29e99 38%, #9c9893 72%, #8d8984 100%);
+  box-shadow:
+    inset 0 calc(var(--u) * 0.45) 0 rgba(255, 255, 255, 0.12),
+    inset 0 calc(var(--u) * -1) calc(var(--u) * 0.9) rgba(0, 0, 0, 0.18),
+    0 calc(var(--u) * 0.8) 0 #4a4845,
+    0 calc(var(--u) * 1.4) calc(var(--u) * 1.8) rgba(0, 0, 0, 0.6);
+}
+
+/* ON|OFF sits in a thin raised ring (lighter at the sides, as in the photos). */
+.ba-key--onoff .ba-key-face::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--u) * -1.5) calc(var(--u) * -1.3);
+  border-radius: inherit;
+  border: calc(var(--u) * 0.55) solid #3c3c3c;
+  border-left-color: #8a8a8a;
+  border-right-color: #8a8a8a;
+  pointer-events: none;
+}
+
+.ba-key-legend {
+  position: relative;
+  font-family: "Fira Sans Condensed", sans-serif;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  /* Optical centering of capitals in the line box */
+  top: 0.04em;
+}
+.ba-key--digit .ba-key-legend {
+  font-weight: 400;
+}
+.ba-shape--shield.ba-key--op .ba-key-legend {
+  font-weight: 400;
+}
+/* Drawn operator symbols and decimal point (Keypad.tsx SYMBOLS), in device units over the key face */
+.ba-symbol {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  stroke: currentColor;
+  fill: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: butt;
+}
+.ba-symbol circle {
+  stroke: none;
+}
+.ba-key-legend sup {
+  position: relative;
+  top: -0.42em;
+  font-size: 0.62em;
+  line-height: 0;
+  vertical-align: baseline;
+}
+/* Italic math letters: the x-height of STIX is small, so scale them up to the legend's cap height. */
+.ba-math {
+  font-family: "STIX Two Text", serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.3em;
+  line-height: 0;
+}
+.ba-radical .ba-overbar {
+  display: inline-block;
+  border-top: 0.075em solid currentColor;
+  padding: 0.02em 0.04em 0 0.02em;
+  line-height: 0.9;
+}
+
+.ba-key:active .ba-key-face {
+  transform: translateY(calc(var(--u) * 0.9));
+  filter: brightness(0.88);
+}
+@media (hover: hover) {
+  .ba-key:hover .ba-key-face {
+    filter: brightness(1.08);
+  }
+  .ba-key:active .ba-key-face {
+    filter: brightness(0.88);
+  }
+}
+.ba-key:focus-visible .ba-key-face {
+  outline: calc(var(--u) * 0.8) solid #f5c451;
+  outline-offset: calc(var(--u) * 1);
+}
+.ba-key--second[aria-pressed="true"] .ba-key-face {
+  filter: brightness(1.05);
+}
+
+/* ---- Key tip bubble ---- */
+
+.ba-tip {
+  position: absolute;
+  z-index: 30;
+  padding: 10px 12px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  color: var(--page-fg);
+  box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.15);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 12.5px;
+  line-height: 1.4;
+  pointer-events: none;
+  animation: ba-tip-in 120ms ease-out;
+}
+.ba-tip-arrow {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  transform: rotate(45deg);
+}
+.ba-tip.is-above .ba-tip-arrow {
+  bottom: -6px;
+  border-top: 0;
+  border-left: 0;
+}
+.ba-tip.is-below .ba-tip-arrow {
+  top: -6px;
+  border-bottom: 0;
+  border-right: 0;
+}
+.ba-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.ba-tip-key {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #2b2d31;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ba-tip-key.is-gold {
+  background: #e2b54a;
+  color: #2a1f05;
+}
+.ba-tip-name {
+  font-weight: 600;
+}
+.ba-tip-does {
+  margin: 0;
+}
+.ba-tip-ex {
+  margin: 5px 0 0;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--page-fg) 7%, transparent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+.ba-tip-second {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-border);
+}
+.ba-tip-kbd {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@keyframes ba-tip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ba-key-face,
+  .ba-ann-item {
+    transition: none;
+  }
+  .ba-tip {
+    animation: none;
+  }
+}

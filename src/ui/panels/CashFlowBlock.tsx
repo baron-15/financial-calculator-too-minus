@@ -50,10 +50,9 @@ export function CashFlowBlock({ state, active, current, onEdit, onPressKeys }: B
   const cur = (id: string) => active && current === id;
   const flow = (id: string) => ws === "CF" && cur(id);
 
-  // Which Compute button ran last: its errors get a friendly message until CE|C clears them.
+  // Which Compute button ran last: its error gets a friendly message. Forgotten once the calculator shows
+  // no error (it worked, or CE|C cleared it), so a later error from the keypad is not explained as its own.
   const [ran, setRan] = useState<"npv" | "irr" | null>(null);
-  // Forget it once the calculator shows no error (the computation worked, or CE|C cleared it), so a later
-  // error from the keypad is not explained as this button's.
   useEffect(() => {
     if (state.view.error === null) setRan(null);
   }, [state]);

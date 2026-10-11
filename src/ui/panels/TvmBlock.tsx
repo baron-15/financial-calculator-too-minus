@@ -54,11 +54,11 @@ export function TvmBlock({ state, active, current, onEdit, onPressKeys }: BlockP
 
   // The register the LCD shows as computed ("*"), e.g. right after CPT PMT.
   const computed = state.on && state.mode.kind === "calc" && state.view.computed && state.view.error === null ? (activeVarId(state) as TvmVar | null) : null;
-  // The last register a CPT button computed: its errors get a friendly message here, and the formulas follow it.
+  // The register a CPT button just computed: its error gets a friendly message. Forgotten once the calculator
+  // shows no error (it worked, or CE|C cleared it), so a later error from the keypad is not explained as its own.
   const [ran, setRan] = useState<TvmVar | null>(null);
+  // The formulas follow the register computed last.
   const [lastTarget, setLastTarget] = useState<TvmVar>("fv");
-  // Forget it once the calculator shows no error (the computation worked, or CE|C cleared it), so a later
-  // error from the keypad is not explained as this button's.
   useEffect(() => {
     if (state.view.error === null) setRan(null);
   }, [state]);

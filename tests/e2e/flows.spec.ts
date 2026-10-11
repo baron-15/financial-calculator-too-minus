@@ -4,7 +4,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import { ann, expectAnn, freshEmulator, key, lcd, run } from "./calc";
-import { AI_BASE_URL, AI_SKIP_REASON, COMING_SOON } from "./ai";
+import { AI_BASE_URL, AI_SKIP_REASON } from "./ai";
 
 test.beforeEach(async ({ page }) => {
   // Never reach the real explainer, even by accident.
@@ -63,7 +63,7 @@ test.describe("TVM", () => {
 });
 
 test.describe("cash flows", () => {
-  test("enter the guidebook flows, INS/DEL renumber, NPV 7,266.44 and IRR 52.71", async ({ page, isMobile }) => {
+  test("enter the guidebook flows, INS/DEL renumber, NPV 7,266.44 and IRR 52.71", async ({ page }) => {
     await run(page, "CF 2ND CLR_WORK 7000 +|- ENTER");
     await expect(lcd(page)).toHaveText("CFo= -7,000.00 ◄");
     await expectAnn(page, "ins", true);
@@ -77,35 +77,19 @@ test.describe("cash flows", () => {
     await expect(lcd(page)).toHaveText("C02= 4,000.00 ◄");
     await run(page, "2ND INS");
     await expectDown(page, ["C02= 0.00 ◄", "F02= 1.00 ◄", "C03= 4,000.00 ◄", "F03= 1.00 ◄", "C04= 5,000.00 ◄", "F04= 4.00 ◄"]);
-    if (!isMobile) await expect(page.getByTestId("panel-cf").locator("tbody tr")).toHaveCount(5);
+    await expect(page.getByTestId("panel-cf").getByTestId("cf-row")).toHaveCount(4);
 
     // DEL on the inserted group closes the gap again.
     await run(page, "↑ ↑ ↑ ↑ ↑");
     await expect(lcd(page)).toHaveText("C02= 0.00 ◄");
     await run(page, "2ND DEL");
     await expectDown(page, ["C02= 4,000.00 ◄", "F02= 1.00 ◄", "C03= 5,000.00 ◄", "F03= 4.00 ◄", "C04= 0.00"]);
-    if (!isMobile) await expect(page.getByTestId("panel-cf").locator("tbody tr")).toHaveCount(4);
+    await expect(page.getByTestId("panel-cf").getByTestId("cf-row")).toHaveCount(3);
 
     await run(page, "NPV 20 ENTER ↓ CPT");
     await expect(lcd(page)).toHaveText("NPV= 7,266.44 *");
     await run(page, "IRR CPT");
     await expect(lcd(page)).toHaveText("IRR= 52.71 *");
-  });
-
-  test("Load into calculator from /tools/cash-flow fills the CF and NPV worksheets", async ({ page }) => {
-    await page.goto("/#/tools/cash-flow");
-    await page.getByTestId("cf-example").click();
-    await page.getByTestId("cf-load-calculator").click();
-    await expect(page).toHaveURL(/\/$/);
-    await run(page, "CF");
-    await expectDown(page, ["CFo= -7,000.00", "C01= 3,000.00 ◄", "F01= 1.00 ◄", "C02= 4,000.00 ◄", "F02= 1.00 ◄", "C03= 5,000.00 ◄", "F03= 4.00 ◄", "C04= 0.00"]);
-    await run(page, "NPV");
-    await expect(lcd(page)).toHaveText("I= 20.00");
-    await run(page, "↓");
-    await expect(lcd(page)).toHaveText(/^NPV= /);
-    await expectAnn(page, "computed", false); // loaded flows invalidate the old NPV
-    await run(page, "CPT");
-    await expect(lcd(page)).toHaveText("NPV= 7,266.44 *");
   });
 });
 
@@ -229,17 +213,17 @@ test.describe("persistence", () => {
 });
 
 test.describe("explainer on the emulator page, flag off (default)", () => {
-  test("shows the coming-soon note and never calls the API", async ({ page, isMobile }) => {
+  test("renders nothing and never calls the API", async ({ page }) => {
     let calls = 0;
     await page.unroute("**/api/explain");
     await page.route("**/api/explain", (route) => {
       calls++;
       return route.fulfill({ status: 599, body: "should not be called" });
     });
-    if (isMobile) await page.getByRole("tab", { name: /Explain/ }).click();
     await run(page, "2ND CLR_TVM 10 N 5 I/Y 100 +|- PV CPT FV");
-    await expect(page.getByTestId("panel-explain").getByTestId("explain-coming-soon")).toHaveText(COMING_SOON);
+    await expect(page.getByTestId("panel-explain")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Explain this result" })).toHaveCount(0);
+    await expect(page.getByText("Coming soon")).toHaveCount(0);
     expect(calls).toBe(0);
   });
 });
@@ -248,7 +232,7 @@ test.describe("explainer on the emulator page (VITE_AI_EXPLAINER=on)", () => {
   test.skip(!AI_BASE_URL, AI_SKIP_REASON);
   test.use({ baseURL: AI_BASE_URL });
 
-  test("enables on a computed value, streams Markdown and renders $$ math", async ({ page, isMobile }) => {
+  test("enables on a computed value, streams Markdown and renders $$ math", async ({ page }) => {
     let body: Record<string, unknown> | null = null;
     let calls = 0;
     await page.unroute("**/api/explain");
@@ -261,7 +245,6 @@ test.describe("explainer on the emulator page (VITE_AI_EXPLAINER=on)", () => {
         body: "**Formula**\n\n$$FV = -PV\\,(1 + i)^{N}$$\n\nWith $i = 0.05$ and $N = 10$:\n\n$$FV = 100 \\times 1.05^{10} = 162.89$$\n\n**Result:** FV = 162.89",
       });
     });
-    if (isMobile) await page.getByRole("tab", { name: /Explain/ }).click();
     const button = page.getByRole("button", { name: "Explain this result" });
     await expect(button).toBeDisabled();
     await run(page, "2 + 3 =");
@@ -304,17 +287,6 @@ test.describe("page theme", () => {
     await expect(html).toHaveAttribute("data-theme", "dark");
     await page.emulateMedia({ colorScheme: "light" });
     expect(await bg()).toBe("rgb(21, 23, 26)"); // the explicit choice wins over the OS
-  });
-
-  test("dark: utilities apply under OS dark mode with no theme chosen", async ({ page, isMobile }) => {
-    test.skip(isMobile, "the nav link's dark:hover style needs a hover-capable pointer");
-    await page.emulateMedia({ colorScheme: "dark" });
-    const link = page.getByRole("link", { name: "TVM Tool" });
-    await link.hover();
-    // dark:hover:bg-white/10 (white at 10% alpha); light mode would use black/5.
-    await expect(link).toHaveCSS("background-color", /^(rgba\(255, 255, 255, 0\.1\)|oklab\(0\.99\d* [\d.e-]+ [\d.e-]+ \/ 0\.1\))$/);
-    await page.emulateMedia({ colorScheme: "light" });
-    await expect(link).toHaveCSS("background-color", /^(rgba\(0, 0, 0, 0\.05\)|oklab\(0 0 0 \/ 0\.05\))$/);
   });
 });
 

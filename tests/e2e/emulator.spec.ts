@@ -82,8 +82,7 @@ test("state is saved on pagehide even before the debounce fires", async ({ page 
   await expect(lcd(page)).toHaveText("7.00");
 });
 
-test("the tape shows 2ND functions by their gold names", async ({ page, isMobile }) => {
-  if (isMobile) await page.getByRole("tab", { name: "Tape" }).click();
+test("the tape shows 2ND functions by their gold names", async ({ page }) => {
   await press(page, "Second function", "FV, future value", "1", "0", "N, number of periods");
   const tape = page.getByTestId("tape");
   await expect(tape).toContainText("CLR TVM");
@@ -94,13 +93,13 @@ test("the tape shows 2ND functions by their gold names", async ({ page, isMobile
 test("hovering a key explains it and its 2ND function", async ({ page, isMobile }) => {
   test.skip(isMobile, "hover tips are for pointer devices; touch uses long-press");
   const tip = page.getByTestId("key-tip");
-  const tipsSwitch = page.getByRole("switch", { name: "Key tips" });
+  const tipsSwitch = page.locator("header").getByRole("switch", { name: "Key tips" });
   // Off by default: hovering shows nothing.
   await expect(tipsSwitch).toHaveAttribute("aria-checked", "false");
   await key(page, "PV, present value").hover();
   await page.waitForTimeout(700);
   await expect(tip).toBeHidden();
-  // Turn the switch on (in the Explain card): the tip opens after the short hover delay.
+  // Turn the switch on (in the page header): the tip opens after the short hover delay.
   await page.mouse.move(0, 0);
   await tipsSwitch.click();
   await expect(tipsSwitch).toHaveAttribute("aria-checked", "true");
@@ -108,13 +107,16 @@ test("hovering a key explains it and its 2ND function", async ({ page, isMobile 
   await expect(tip).toBeVisible();
   await expect(tip).toContainText("Present value");
   await expect(tip).toContainText("AMORT");
+  // Remembered in this browser.
+  await page.reload();
+  await expect(page.getByRole("switch", { name: "Key tips" })).toHaveAttribute("aria-checked", "true");
 });
 
-test("opening a worksheet highlights its panel", async ({ page, isMobile }) => {
+test("opening a worksheet shows and highlights its block", async ({ page }) => {
   await press(page, "Cash flow worksheet");
   await expect(lcd(page)).toHaveText(/^CFo= /);
   await expect(page.getByTestId("panel-cf")).toHaveAttribute("data-active", "true");
-  if (isMobile) await expect(page.getByRole("tab", { name: /Cash flow/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("feature-tab-cf")).toHaveAttribute("aria-selected", "true");
   await press(page, "Second function", "Compute");
   await expect(page.getByTestId("panel-cf")).toHaveAttribute("data-active", "false");
 });
@@ -130,7 +132,7 @@ test("theme toggle switches data-theme and is remembered", async ({ page }) => {
   await expect(html).toHaveAttribute("data-theme", after!);
 });
 
-test("no horizontal overflow at 360px, on every panel tab", async ({ page }) => {
+test("no horizontal overflow at 360px, with every feature block and in Calculator only", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
   await page.reload();
   const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -140,11 +142,19 @@ test("no horizontal overflow at 360px, on every panel tab", async ({ page }) => 
   const box = await key(page, "5").boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
 
-  const tabs = page.getByRole("tab");
-  const n = await tabs.count();
-  expect(n).toBeGreaterThan(5);
-  for (let i = 0; i < n; i++) {
-    await tabs.nth(i).click();
-    expect(await overflow()).toBeLessThanOrEqual(0);
+  for (const feature of ["tvm", "cf", "stats", "bond", "worksheet"]) {
+    await page.getByTestId(`feature-tab-${feature}`).click();
+    await expect(page.getByTestId("feature-block")).toHaveAttribute("data-feature", feature);
+    expect(await overflow(), feature).toBeLessThanOrEqual(0);
   }
+  // A full cash-flow table and the amortization schedule still fit.
+  await page.getByTestId("feature-tab-cf").click();
+  await page.getByTestId("cf-example").click();
+  expect(await overflow()).toBeLessThanOrEqual(0);
+  await page.getByTestId("feature-tab-tvm").click();
+  await page.getByTestId("tvm-example").selectOption("mortgage");
+  await page.getByTestId("tvm-tab-amort").click();
+  expect(await overflow()).toBeLessThanOrEqual(0);
+  await page.getByRole("switch", { name: "Calculator only" }).click();
+  expect(await overflow()).toBeLessThanOrEqual(0);
 });

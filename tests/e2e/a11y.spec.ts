@@ -1,6 +1,6 @@
 /**
  * Accessibility checks in a real browser: key names and descriptions, the LCD's live announcement,
- * visible focus, keyboard-only use of the keypad, labelled tool-page fields, and WCAG AA text contrast.
+ * visible focus, keyboard-only use of the keypad, labelled feature-block fields, and WCAG AA text contrast.
  */
 import { expect, test, type Page } from "@playwright/test";
 import { ALL_KEYS } from "../../src/engine";
@@ -177,8 +177,8 @@ test.describe("keypad semantics", () => {
   });
 
   test("focus is visible on keys and page controls", async ({ page }) => {
-    await page.getByRole("link", { name: "Calculator" }).focus();
-    // Tab through the header controls into the first few keys.
+    await page.getByRole("switch", { name: "Key tips" }).focus();
+    // Tab through the header controls (Calculator only, theme) into the first few keys.
     for (let i = 0; i < 7; i++) {
       await page.keyboard.press("Tab");
       const indicator = await page.evaluate(() => {
@@ -192,12 +192,11 @@ test.describe("keypad semantics", () => {
   });
 });
 
-test.describe("tool pages", () => {
-  for (const path of ["/tools/tvm", "/tools/cash-flow"]) {
-    test(`every form field on ${path} has a label`, async ({ page }) => {
-      await page.goto(`/#${path}`);
-      await page.getByRole("heading", { level: 1 }).waitFor();
-      const unlabeled = await page.locator("input, select, textarea").evaluateAll((els) =>
+test.describe("feature blocks", () => {
+  test("every form field has a label, in every block", async ({ page }) => {
+    await page.goto("/");
+    const unlabeled = () =>
+      page.locator("input, select, textarea").evaluateAll((els) =>
         els
           .filter((e) => (e as HTMLInputElement).type !== "hidden")
           .filter((e) => {
@@ -207,23 +206,54 @@ test.describe("tool pages", () => {
           })
           .map((e) => e.outerHTML.slice(0, 120)),
       );
-      expect(unlabeled).toEqual([]);
-    });
-  }
+    await page.getByTestId("feature-tab-tvm").click();
+    await page.getByTestId("tvm-tab-timeline").waitFor();
+    expect(await unlabeled()).toEqual([]);
+    await page.getByTestId("feature-tab-cf").click();
+    await page.getByTestId("cf-example").click();
+    await expect(page.getByTestId("cf-row")).toHaveCount(3);
+    expect(await unlabeled()).toEqual([]);
+    await page.getByTestId("feature-tab-worksheet").click();
+    expect(await unlabeled()).toEqual([]);
+  });
+
+  test("the selector and sub-tabs are tabs with their panels", async ({ page }) => {
+    await page.goto("/");
+    await page.getByTestId("feature-tab-tvm").click();
+    const selector = page.getByRole("tablist", { name: "Feature to show" });
+    await expect(selector.getByRole("tab")).toHaveCount(5);
+    await expect(page.getByRole("tabpanel", { name: "TVM" })).toBeVisible();
+    await expect(page.getByRole("tablist", { name: "TVM views" }).getByRole("tab")).toHaveCount(3);
+    await expect(page.getByRole("tabpanel", { name: "Timeline" })).toBeVisible();
+    // Only the selected tab is in the Tab order.
+    await expect(selector.locator('[tabindex="0"]')).toHaveCount(1);
+  });
 });
 
 test.describe("text contrast (WCAG AA)", () => {
   for (const theme of ["light", "dark"] as const) {
-    for (const path of ["/", "/tools/tvm", "/tools/cash-flow"]) {
-      test(`${path} in the ${theme} theme`, async ({ page, isMobile }) => {
+    for (const view of ["calculator", "tvm", "cf", "more"] as const) {
+      test(`${view} in the ${theme} theme`, async ({ page, isMobile }) => {
         await page.emulateMedia({ colorScheme: theme });
-        await page.goto(`/#${path}`);
-        if (path === "/tools/tvm") await page.selectOption("#tvm-example", "mortgage");
-        else if (path === "/tools/cash-flow") await page.getByTestId("cf-example").click();
-        else if (!isMobile) {
+        await page.goto("/");
+        if (view === "tvm") {
+          await page.getByTestId("feature-tab-tvm").click();
+          await page.getByTestId("tvm-example").selectOption("mortgage");
+          await page.getByTestId("tvm-tab-amort").click();
+        } else if (view === "cf") {
+          await page.getByTestId("feature-tab-cf").click();
+          await page.getByTestId("cf-example").click();
+          await page.getByTestId("cf-add").click();
+          await page.getByTestId("cf-amount-4").fill("abc");
+          await page.getByTestId("cf-amount-4").press("Enter"); // an inline error message
+        } else if (view === "more") {
+          await page.getByTestId("feature-tab-worksheet").click();
+          await page.getByTestId("worksheet-picker").getByText("DEPR").click();
+          await page.getByRole("switch", { name: "Calculator only" }).focus(); // header switches, off
+        } else if (!isMobile) {
           // Fill some panels so their rows and badges are on screen.
           for (const name of ["Cash flow worksheet", "Down", "5", "Enter"]) await key(page, name).click();
-          // Key tips are off by default; turn them on so the tip bubble is included in the check.
+          // Key tips are off by default; turn them on so the tip bubble (and the switch's on state) is checked.
           await page.getByRole("switch", { name: "Key tips" }).click();
           await key(page, "PV, present value").hover();
           await expect(page.getByTestId("key-tip")).toBeVisible();

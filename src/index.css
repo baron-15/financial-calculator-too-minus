@@ -475,6 +475,9 @@ body {
     font-size: 0.75rem;
     font-weight: 400;
   }
+  .ws-chip.is-on .ws-chip-keys {
+    color: var(--page-fg);
+  }
   .tape-token.is-note {
     border-style: dashed;
     font-family: inherit;

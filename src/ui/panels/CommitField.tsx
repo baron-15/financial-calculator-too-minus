@@ -3,7 +3,7 @@
  * while focused it holds a local draft at full precision and commits on Enter or blur. Junk is rejected
  * with an inline message and the register keeps its old value; Esc reverts the draft.
  */
-import { useId, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { parseNumber } from "../tools/numbers";
 
 /** Text for editing a stored value: the full 13-digit precision, no separators ("-729.1327033594"). */
@@ -35,11 +35,16 @@ export function CommitField({ label, value, display, onCommit, blankAs = 0, curr
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  /** Select the field's text once React has written the new draft into it. */
-  const selectSoon = (el: HTMLInputElement) =>
-    requestAnimationFrame(() => {
-      if (document.activeElement === el) el.select();
-    });
+  const input = useRef<HTMLInputElement>(null);
+  // Select the whole value whenever a new draft is written into the field (on focus, after Enter), so
+  // typing replaces it. A layout effect runs before anything else can type into the field.
+  const [selectTick, setSelectTick] = useState(0);
+  useLayoutEffect(() => {
+    const el = input.current;
+    if (selectTick && el && document.activeElement === el) el.select();
+  }, [selectTick]);
+  /** Focused by a mouse press: its mouseup would collapse the selection to the caret. */
+  const pointerFocus = useRef(false);
 
   /** Commit the draft; returns the new draft text (or null when nothing is left to edit). */
   const commit = (raw: string): { ok: boolean; text: string } => {
@@ -71,9 +76,17 @@ export function CommitField({ label, value, display, onCommit, blankAs = 0, curr
         data-testid={testId}
         className={`block-input${current ? " is-current" : ""}${error ? " is-invalid" : ""}`}
         value={draft ?? display}
-        onFocus={(e) => {
+        ref={input}
+        onFocus={() => {
           setDraft(editText(value));
-          selectSoon(e.currentTarget);
+          setSelectTick((n) => n + 1);
+        }}
+        onMouseDown={(e) => {
+          pointerFocus.current = document.activeElement !== e.currentTarget;
+        }}
+        onMouseUp={(e) => {
+          if (pointerFocus.current) e.preventDefault();
+          pointerFocus.current = false;
         }}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => {
@@ -86,7 +99,7 @@ export function CommitField({ label, value, display, onCommit, blankAs = 0, curr
             if (draft === null) return;
             const r = commit(draft);
             setDraft(r.text);
-            if (r.ok) selectSoon(e.currentTarget);
+            if (r.ok) setSelectTick((n) => n + 1);
           } else if (e.key === "Escape") {
             e.preventDefault();
             setError(null);

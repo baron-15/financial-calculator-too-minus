@@ -223,6 +223,8 @@ test.describe("text contrast (WCAG AA)", () => {
         else if (!isMobile) {
           // Fill some panels so their rows and badges are on screen.
           for (const name of ["Cash flow worksheet", "Down", "5", "Enter"]) await key(page, name).click();
+          // Key tips are off by default; turn them on so the tip bubble is included in the check.
+          await page.getByRole("switch", { name: "Key tips" }).click();
           await key(page, "PV, present value").hover();
           await expect(page.getByTestId("key-tip")).toBeVisible();
         }

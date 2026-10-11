@@ -4,8 +4,8 @@ import { HIT_PAD, KEY_BOXES, LEGEND_CAP, cqw, pctX, pctY, type KeyBox } from "./
 import { SECOND_TIPS } from "./keyTips";
 
 const LONG_PRESS_MS = 500;
-/** Hover must rest on a key this long before its tip opens, so moving across the keypad stays quiet. */
-export const HOVER_DELAY_MS = 1100;
+/** Hover delay before a key tip opens (tips are off unless the "Key tips" switch is on). */
+export const HOVER_DELAY_MS = 350;
 
 export interface TipRequest {
   id: KeyId;
@@ -20,6 +20,8 @@ export interface KeypadProps {
   flash: { id: KeyId; n: number } | null;
   secondActive: boolean;
   onTip: (req: TipRequest | null) => void;
+  /** The "Key tips" switch: when off, no tip opens on hover, long-press or focus. */
+  tipsEnabled: boolean;
 }
 
 const math = (s: string) => <span className="ba-math">{s}</span>;
@@ -127,9 +129,10 @@ interface KeyProps {
   pressed2nd: boolean;
   onPress: (id: KeyId) => void;
   onTip: (req: TipRequest | null) => void;
+  tipsEnabled: boolean;
 }
 
-const Key = memo(function Key({ spec, box, flashN, pressed2nd, onPress, onTip }: KeyProps) {
+const Key = memo(function Key({ spec, box, flashN, pressed2nd, onPress, onTip, tipsEnabled }: KeyProps) {
   const faceRef = useRef<HTMLSpanElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -184,7 +187,7 @@ const Key = memo(function Key({ spec, box, flashN, pressed2nd, onPress, onTip }:
         aria-describedby={description ? descId : undefined}
         data-calc-key={spec.id}
         onPointerEnter={(e) => {
-          if (e.pointerType !== "mouse") return;
+          if (e.pointerType !== "mouse" || !tipsEnabled) return;
           const el = e.currentTarget;
           clearTimeout(hoverTimer.current);
           hoverTimer.current = setTimeout(() => onTip({ id: spec.id, el, via: "hover" }), HOVER_DELAY_MS);
@@ -196,7 +199,7 @@ const Key = memo(function Key({ spec, box, flashN, pressed2nd, onPress, onTip }:
         }}
         onPointerDown={(e) => {
           longPressed.current = false;
-          if (e.pointerType === "mouse") return;
+          if (e.pointerType === "mouse" || !tipsEnabled) return;
           const el = e.currentTarget;
           clearTimeout(pressTimer.current);
           pressTimer.current = setTimeout(() => {
@@ -208,7 +211,7 @@ const Key = memo(function Key({ spec, box, flashN, pressed2nd, onPress, onTip }:
         onPointerCancel={() => clearTimeout(pressTimer.current)}
         onContextMenu={(e) => e.preventDefault()}
         onFocus={(e) => {
-          if (e.currentTarget.matches(":focus-visible")) onTip({ id: spec.id, el: e.currentTarget, via: "focus" });
+          if (tipsEnabled && e.currentTarget.matches(":focus-visible")) onTip({ id: spec.id, el: e.currentTarget, via: "focus" });
         }}
         onBlur={() => onTip(null)}
         onClick={() => {
@@ -232,7 +235,7 @@ const Key = memo(function Key({ spec, box, flashN, pressed2nd, onPress, onTip }:
   );
 });
 
-export const Keypad = memo(function Keypad({ onPress, flash, secondActive, onTip }: KeypadProps) {
+export const Keypad = memo(function Keypad({ onPress, flash, secondActive, onTip, tipsEnabled }: KeypadProps) {
   return (
     <div className="ba-keypad" role="group" aria-label="Keypad">
       {ALL_KEYS.map((spec) => (
@@ -244,6 +247,7 @@ export const Keypad = memo(function Keypad({ onPress, flash, secondActive, onTip
           pressed2nd={spec.id === "2ND" && secondActive}
           onPress={onPress}
           onTip={onTip}
+          tipsEnabled={tipsEnabled}
         />
       ))}
     </div>

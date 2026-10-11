@@ -93,11 +93,18 @@ test("the tape shows 2ND functions by their gold names", async ({ page, isMobile
 
 test("hovering a key explains it and its 2ND function", async ({ page, isMobile }) => {
   test.skip(isMobile, "hover tips are for pointer devices; touch uses long-press");
-  await key(page, "PV, present value").hover();
   const tip = page.getByTestId("key-tip");
-  // Not aggressive: a brief hover (passing over the keypad) does not open it.
+  const tipsSwitch = page.getByRole("switch", { name: "Key tips" });
+  // Off by default: hovering shows nothing.
+  await expect(tipsSwitch).toHaveAttribute("aria-checked", "false");
+  await key(page, "PV, present value").hover();
   await page.waitForTimeout(700);
   await expect(tip).toBeHidden();
+  // Turn the switch on (in the Explain card): the tip opens after the short hover delay.
+  await page.mouse.move(0, 0);
+  await tipsSwitch.click();
+  await expect(tipsSwitch).toHaveAttribute("aria-checked", "true");
+  await key(page, "PV, present value").hover();
   await expect(tip).toBeVisible();
   await expect(tip).toContainText("Present value");
   await expect(tip).toContainText("AMORT");

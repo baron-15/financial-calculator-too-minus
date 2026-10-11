@@ -3,14 +3,14 @@
  * - Consecutive digits and "." merge into one number token ("100").
  * - 2ND presses disappear; the following key shows its gold name ("CLR TVM", not "2ND FV").
  * - A new line starts after "=", ENTER, QUIT, and after a CPT (or "CPT <TVM key>") computation.
- * - A value typed into a feature block is a line of its own ("PV = -100 (panel)").
+ * - An example loaded from a feature block is a line of its own ("Mortgage example (panel)").
  */
 import { KEY_BY_ID, type KeyId } from "../../engine";
 import { isKeyEntry, type LogEntry } from "../../hooks/calculatorReducer";
 
 export interface TapeToken {
   text: string;
-  /** number: merged digits; key: face legend; second: gold 2ND function; pending: 2ND awaiting a key; note: a block edit */
+  /** number: merged digits; key: face legend; second: gold 2ND function; pending: 2ND awaiting a key; note: an example loaded from a block */
   kind: "number" | "key" | "second" | "pending" | "note";
 }
 

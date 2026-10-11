@@ -1,7 +1,8 @@
 /**
- * The TVM feature block: the former TVM tool, bound to the calculator's own registers (state.ws.tvm).
- * Typing a value stores it in the register (an "edit"); each CPT button presses the real CPT key and
- * the register's key, so the LCD and the tape show exactly what the device would.
+ * The TVM feature block: a read-only view of the calculator's own registers (state.ws.tvm), so what you
+ * see is always what the calculator will compute with. Values come only from keys pressed on the
+ * calculator; the CPT buttons and Clear TVM press the real keys, and an example is loaded into the
+ * registers (one "(panel)" line on the tape) and then computed with CPT on the calculator.
  */
 import { Suspense, lazy, useEffect, useId, useMemo, useState } from "react";
 import type { KeyId } from "../../engine";
@@ -11,15 +12,15 @@ import type { TvmInput, TvmVar } from "../../engine/finance/tvm";
 import { AmortTable } from "../tools/AmortTable";
 import { friendlyError } from "../tools/errors";
 import { TvmFormulas } from "../tools/Formulas";
-import { AMORT_MAX_ROWS, TVM_EXAMPLES, scheduleFor, toTvmData, tvmTimeline } from "../tools/tvmModel";
+import { AMORT_MAX_ROWS, TVM_EXAMPLES, TVM_LABEL, scheduleFor, toTvmData, tvmTimeline } from "../tools/tvmModel";
 import { ChartFallback, ErrorBanner, btn } from "../tools/ui";
 import { activeVarId } from "./activePanel";
 import { runEdit, type BlockProps } from "./blockProps";
-import { CommitField } from "./CommitField";
-import { TVM_FIELD_LABEL, editTvm, editValueText, setTvm, setTvmTiming, type TvmField } from "./edits";
+import { setTvm } from "./edits";
 import { num, whole } from "./fmt";
 import { keysTo } from "./keysTo";
-import { Row, Rows } from "./PanelCard";
+import { FlashValue, Row, Rows } from "./PanelCard";
+import { tvmSummary } from "./summary";
 import { Tabs, tabId, tabPanelId } from "./Tabs";
 
 // Recharts is large: load the chart code only when a chart is shown.
@@ -75,9 +76,7 @@ export function TvmBlock({ state, active, current, onEdit, onPressKeys }: BlockP
   useEffect(() => setShowAll(false), [input]);
   const timeline = useMemo(() => (tab === "timeline" ? tvmTimeline(input, { lumpSums }) : null), [tab, input, lumpSums]);
   const schedule = useMemo(() => (tab === "amort" ? scheduleFor(input, showAll) : null), [tab, input, showAll]);
-
-  const edit = (field: TvmField, x: number) =>
-    runEdit(state, onEdit, `${TVM_FIELD_LABEL[field]} = ${editValueText(x)} (panel)`, (s) => editTvm(s, field, x));
+  const summary = useMemo(() => tvmSummary(state), [state]);
 
   const compute = (target: TvmVar) => {
     setRan(target);
@@ -99,78 +98,75 @@ export function TvmBlock({ state, active, current, onEdit, onPressKeys }: BlockP
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 @2xl:grid-cols-[minmax(0,1fr)_15rem]">
-        <div className="space-y-1" role="group" aria-label="TVM registers">
-          {REGISTERS.map((r) => {
-            const label = TVM_FIELD_LABEL[r.id];
-            const isCurrent = reg(r.id);
-            return (
-              <div key={r.id} className={`block-row grid grid-cols-[5.25rem_minmax(0,1fr)_auto] items-start gap-2${isCurrent ? " is-current" : ""}`} data-current={isCurrent ? "true" : undefined}>
-                <div className="min-w-0 pt-1.5 leading-tight">
-                  <span className="font-medium">{label}</span>
-                  {computed === r.id && (
-                    <span className="ml-1 font-semibold text-[var(--gold-ink)]" data-testid={`tvm-computed-${r.id}`}>
-                      <span aria-hidden="true">*</span>
-                      <span className="sr-only">(computed)</span>
+      <div className="space-y-1.5">
+        <p className="block-summary" data-testid="tvm-summary">
+          {summary}
+        </p>
+        <p className="text-xs text-[var(--muted)]">Values come from the calculator: key them in, or load an example.</p>
+      </div>
+
+      <div className="grid gap-x-6 gap-y-4 @2xl:grid-cols-[minmax(0,1fr)_15rem]">
+        <div role="group" aria-label="TVM registers">
+          <dl className="space-y-0.5">
+            {REGISTERS.map((r) => {
+              const label = TVM_LABEL[r.id];
+              const isCurrent = reg(r.id);
+              return (
+                <div key={r.id} className={`block-row grid grid-cols-[5.25rem_minmax(0,1fr)] items-center gap-2${isCurrent ? " is-current" : ""}`} data-current={isCurrent ? "true" : undefined}>
+                  <dt className="min-w-0 leading-tight">
+                    <span className="font-medium">{label}</span>
+                    {computed === r.id && (
+                      <span className="ml-1 font-semibold text-[var(--gold-ink)]" data-testid={`tvm-computed-${r.id}`}>
+                        <span aria-hidden="true">*</span>
+                        <span className="sr-only">(computed)</span>
+                      </span>
+                    )}
+                    <span className="block text-xs text-[var(--muted)]">{r.hint}</span>
+                  </dt>
+                  <dd className="flex min-w-0 items-center justify-end gap-2">
+                    <span className="block-value" data-testid={`tvm-${r.id}`}>
+                      <FlashValue value={num(state, t[r.id])} />
                     </span>
-                  )}
-                  <span className="block text-xs text-[var(--muted)]">{r.hint}</span>
+                    <button
+                      type="button"
+                      className={btn.cpt}
+                      onClick={() => compute(r.id)}
+                      aria-label={`Press CPT, ${label} on the calculator`}
+                      title={`Press CPT, ${label} on the calculator`}
+                      data-testid={`tvm-cpt-${r.id}`}
+                    >
+                      CPT
+                    </button>
+                  </dd>
                 </div>
-                <CommitField
-                  label={`${label} (${r.hint})`}
-                  value={t[r.id]}
-                  display={num(state, t[r.id])}
-                  onCommit={(x) => edit(r.id, x)}
-                  current={isCurrent}
-                  testId={`tvm-${r.id}`}
-                />
-                <button type="button" className={btn.cpt} onClick={() => compute(r.id)} aria-label={`Compute ${label}`} data-testid={`tvm-cpt-${r.id}`}>
-                  CPT
-                </button>
-              </div>
-            );
-          })}
+              );
+            })}
+          </dl>
         </div>
 
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <label className="block min-w-0 text-sm">
-              <span className="block font-medium leading-tight">P/Y</span>
-              <span className="mb-1 block text-xs text-[var(--muted)]">payments / year</span>
-              <CommitField label="P/Y (payments per year)" value={t.py} display={num(state, t.py)} onCommit={(x) => edit("py", x)} blankAs={null} current={ws === "PY" && is("py")} testId="tvm-py" />
-            </label>
-            <label className="block min-w-0 text-sm">
-              <span className="block font-medium leading-tight">C/Y</span>
-              <span className="mb-1 block text-xs text-[var(--muted)]">compounds / year</span>
-              <CommitField label="C/Y (compounding periods per year)" value={t.cy} display={num(state, t.cy)} onCommit={(x) => edit("cy", x)} blankAs={null} current={ws === "PY" && is("cy")} testId="tvm-cy" />
-            </label>
+          <div>
+            <Rows>
+              <Row label="P/Y" hint="payments / year" value={num(state, t.py)} current={ws === "PY" && is("py")} testId="tvm-py" />
+              <Row label="C/Y" hint="compounds / year" value={num(state, t.cy)} current={ws === "PY" && is("cy")} testId="tvm-cy" />
+              <Row label="Timing" hint={t.bgn ? "start of period" : "end of period"} value={t.bgn ? "BGN" : "END"} current={active && ws === "BGN"} testId="tvm-timing" />
+            </Rows>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Set with <span className="whitespace-nowrap">2ND P/Y</span> (↓ for C/Y) and <span className="whitespace-nowrap">2ND BGN</span>, <span className="whitespace-nowrap">2ND SET</span>.
+            </p>
           </div>
-          <fieldset className={`min-w-0 rounded-md${active && ws === "BGN" ? " block-fieldset-current" : ""}`}>
-            <legend className="mb-1 text-sm font-medium">Payment timing</legend>
-            <div className="seg-radios" data-testid="tvm-timing">
-              {(["END", "BGN"] as const).map((opt) => {
-                const on = (opt === "BGN") === t.bgn;
-                return (
-                  <label key={opt} className={`seg-radio${on ? " is-on" : ""}`}>
-                    <input
-                      type="radio"
-                      name={`${idBase}-timing`}
-                      value={opt}
-                      checked={on}
-                      className="sr-only"
-                      onChange={() => onEdit(`Timing = ${opt} (panel)`, (s) => setTvmTiming(s, opt === "BGN"))}
-                    />
-                    {opt}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
           <div>
             <label htmlFor={`${idBase}-example`} className="mb-1 block text-sm font-medium">
               Load an example
             </label>
-            <select id={`${idBase}-example`} data-testid="tvm-example" className="block-select" value="" onChange={(e) => loadExample(e.target.value)}>
+            <select
+              id={`${idBase}-example`}
+              data-testid="tvm-example"
+              className="block-select"
+              value=""
+              onChange={(e) => loadExample(e.target.value)}
+              title="Loads the example's values into the calculator, then presses CPT for its unknown"
+            >
               <option value="">Choose…</option>
               {TVM_EXAMPLES.map((ex) => (
                 <option key={ex.id} value={ex.id}>
@@ -179,7 +175,14 @@ export function TvmBlock({ state, active, current, onEdit, onPressKeys }: BlockP
               ))}
             </select>
           </div>
-          <button type="button" className={`${btn.secondary} w-full`} onClick={() => onPressKeys(keysTo(state, ["2ND", "FV"]))} data-testid="tvm-clear">
+          <button
+            type="button"
+            className={`${btn.secondary} w-full`}
+            onClick={() => onPressKeys(keysTo(state, ["2ND", "FV"]))}
+            aria-label="Clear TVM: press 2ND CLR TVM on the calculator"
+            title="Press 2ND CLR TVM on the calculator"
+            data-testid="tvm-clear"
+          >
             Clear TVM <span className="font-normal text-[var(--muted)]">(2ND CLR TVM)</span>
           </button>
         </div>
@@ -201,7 +204,7 @@ export function TvmBlock({ state, active, current, onEdit, onPressKeys }: BlockP
                   <TimelineChart timeline={timeline} />
                 </Suspense>
               ) : (
-                <p className="text-sm text-[var(--muted)]">Enter N (1 to 1,000,000 periods) to see when money flows in and out.</p>
+                <p className="text-sm text-[var(--muted)]">Key in N on the calculator (1 to 1,000,000 periods) to see when money flows in and out.</p>
               )}
             </div>
           )}
@@ -217,7 +220,7 @@ export function TvmBlock({ state, active, current, onEdit, onPressKeys }: BlockP
                 </Rows>
                 <p className="mt-1 text-xs text-[var(--muted)]">Press 2ND AMORT on the calculator to enter P1 and P2; BAL, PRN and INT follow.</p>
               </div>
-              <h3 className="panel-subhead">Schedule from the current registers</h3>
+              <h3 className="panel-subhead">Schedule from the calculator's current registers</h3>
               {schedule === null && <p className="text-sm text-[var(--muted)]">There is nothing to amortize until PMT ≠ 0 and N ≥ 1.</p>}
               {schedule && !schedule.ok && <ErrorBanner>{schedule.message}</ErrorBanner>}
               {schedule?.ok && (

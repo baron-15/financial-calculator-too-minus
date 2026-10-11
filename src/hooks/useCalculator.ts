@@ -38,11 +38,11 @@ export interface UseCalculator {
   state: CalcState;
   lcd: Lcd;
   pressKey: (key: KeyId) => void;
-  /** Apply a feature-block edit to the registers; `note` is shown on the tape. */
+  /** Load a feature block's example into the registers; `note` is shown on the tape. */
   edit: (note: string, apply: (s: CalcState) => CalcState) => void;
   /** Last ~200 keys pressed, most recent last. */
   keystrokes: KeyId[];
-  /** Same log with whether each key was pressed as a 2ND function, plus block edits (for the tape). */
+  /** Same log with whether each key was pressed as a 2ND function, plus examples loaded from a block (for the tape). */
   log: LogEntry[];
   resetLog: () => void;
   /** The feature block on show. */

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderLcd } from "../../src/engine";
 import { calcReducer, emptyStore, isKeyEntry, LOG_LIMIT, type CalcStore, type KeyEntry } from "../../src/hooks/calculatorReducer";
-import { editTvm } from "../../src/ui/panels/edits";
+import { setTvm } from "../../src/ui/panels/edits";
 import { activePanelId, activeVarId } from "../../src/ui/panels/activePanel";
 import { storeAfter } from "./helpers";
 
@@ -39,18 +39,18 @@ describe("calcReducer", () => {
     expect(calcReducer(cleared, { type: "resetLog" })).toBe(cleared);
   });
 
-  it("applies a block edit and records it on the log as a note", () => {
+  it("applies a block edit (an example loaded) and records it on the log as a note", () => {
     const st = storeAfter("2 + 3 =");
     const edited = calcReducer(st, {
       type: "edit",
-      note: "PV = -100 (panel)",
+      note: "Mortgage example (panel)",
       apply: (s) => {
-        const r = editTvm(s, "pv", -100);
+        const r = setTvm(s, { n: 360, iy: 6.125, pv: 120000, pmt: 0, fv: 0, py: 12, cy: 12, bgn: false });
         return r.ok ? r.state : s;
       },
     });
-    expect(edited.calc.ws.tvm.pv).toBe(-100);
-    expect(edited.log.at(-1)).toEqual({ note: "PV = -100 (panel)" });
+    expect(edited.calc.ws.tvm.pv).toBe(120000);
+    expect(edited.log.at(-1)).toEqual({ note: "Mortgage example (panel)" });
     expect(edited.log.filter(isKeyEntry)).toHaveLength(4);
     expect(edited.feature).toBe(st.feature);
   });

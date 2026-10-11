@@ -1,10 +1,10 @@
 /**
- * The cash-flow feature block: the former Cash Flow tool, bound to the CF / NPV / IRR worksheets'
- * data (state.ws.cf). Typing a value stores it (an "edit"); Compute presses NPV ↓ CPT or IRR CPT on the
- * calculator itself, so the LCD and the tape show the device's own result.
+ * The cash-flow feature block: a read-only view of the CF / NPV / IRR worksheets' data (state.ws.cf), so
+ * what you see is always what the calculator will compute with. Values come only from keys pressed on the
+ * calculator; Compute NPV / IRR and Clear press the real keys, and the guidebook example is loaded into the
+ * worksheet (one "(panel)" line on the tape) and then computed with NPV ↓ CPT and IRR CPT on the calculator.
  */
 import { Suspense, lazy, useEffect, useId, useMemo, useState, type ReactNode } from "react";
-import type { CalcState } from "../../engine";
 import { CalcError } from "../../engine/errors";
 import { MAX_CF_GROUPS } from "../../engine/worksheets/cf";
 import { cfChartData, exampleCfForm, readCfForm } from "../tools/cfModel";
@@ -13,21 +13,11 @@ import { CfFormulas } from "../tools/Formulas";
 import { formatFull } from "../tools/numbers";
 import { ChartFallback, ErrorBanner, btn } from "../tools/ui";
 import { runEdit, type BlockProps } from "./blockProps";
-import { CommitField } from "./CommitField";
-import {
-  addCfGroup,
-  editCf0,
-  editCfAmount,
-  editCfFreq,
-  editCfRate,
-  editValueText,
-  moveCfGroup,
-  removeCfGroup,
-  setCashFlows,
-  type EditResult,
-} from "./edits";
+import { setCashFlows } from "./edits";
 import { num } from "./fmt";
 import { keysTo } from "./keysTo";
+import { FlashValue, Row, Rows } from "./PanelCard";
+import { CF_HOW_TO, cfSummary, hasCashFlows } from "./summary";
 import { Tabs, tabId, tabPanelId } from "./Tabs";
 
 const CashFlowChart = lazy(() => import("../tools/charts").then((m) => ({ default: m.CashFlowChart })));
@@ -39,9 +29,6 @@ const SUB_TABS: { id: SubTab; label: string; testId: string }[] = [
   { id: "chart", label: "Chart", testId: "cf-tab-chart" },
   { id: "formulas", label: "Formulas", testId: "cf-tab-formulas" },
 ];
-
-/** The grid shared by the header and every flow row: label, amount, frequency, row buttons. */
-const ROW_GRID = "grid grid-cols-[2.75rem_minmax(0,1fr)_5rem] items-start gap-x-2 gap-y-1 @md:grid-cols-[2.75rem_minmax(0,1fr)_5.5rem_6.75rem]";
 
 export function CashFlowBlock({ state, active, current, onEdit, onPressKeys }: BlockProps) {
   const cf = state.ws.cf;
@@ -58,10 +45,6 @@ export function CashFlowBlock({ state, active, current, onEdit, onPressKeys }: B
   }, [state]);
   const [tab, setTab] = useState<SubTab>("chart");
 
-  const edit = (note: string, fn: (s: CalcState) => EditResult) => runEdit(state, onEdit, note, fn);
-  /** Row buttons have no field to show an error in; their limits are enforced by disabling them. */
-  const editNow = (note: string, fn: (s: CalcState) => EditResult) => void edit(note, fn);
-
   const computeNpv = () => {
     setRan("npv");
     onPressKeys(keysTo(state, ["NPV", "DOWN", "CPT"]));
@@ -74,114 +57,106 @@ export function CashFlowBlock({ state, active, current, onEdit, onPressKeys }: B
     const ex = readCfForm(exampleCfForm());
     if (!ex.ok) return;
     const note = "Cash flows = guidebook example (panel)";
-    if (edit(note, (s) => setCashFlows(s, ex.series.cf0, ex.series.groups, ex.rate ?? 0)) !== null) return;
+    if (runEdit(state, onEdit, note, (s) => setCashFlows(s, ex.series.cf0, ex.series.groups, ex.rate ?? 0)) !== null) return;
     // NPV ↓ CPT, then IRR CPT, on the calculator.
     setRan("irr");
     onPressKeys(keysTo(state, ["NPV", "DOWN", "CPT", "IRR", "CPT"]));
   };
 
   const chart = useMemo(() => cfChartData({ cf0: cf.cf0, groups: cf.groups }, cf.i), [cf.cf0, cf.groups, cf.i]);
+  const summary = useMemo(() => cfSummary(state), [state]);
   const error = ran && state.view.error !== null ? friendlyError(new CalcError(state.view.error), { kind: ran }) : null;
-  const atMax = cf.groups.length >= MAX_CF_GROUPS;
+  const empty = !hasCashFlows(state);
+  const slot = pad(cf.groups.length + 1);
+  const onSlot = cf.groups.length < MAX_CF_GROUPS && (flow(`c${slot}`) || flow(`f${slot}`));
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-x-4 gap-y-3 @md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] @md:items-end">
-        <label className="block min-w-0 text-sm">
-          <span className="mb-1 block font-medium">
-            I <span className="font-normal text-[var(--muted)]">· discount rate % per period</span>
-          </span>
-          <CommitField
-            label="I (discount rate, % per period)"
-            value={cf.i}
-            display={num(state, cf.i)}
-            onCommit={(x) => edit(`I = ${editValueText(x)} (panel)`, (s) => editCfRate(s, x))}
-            current={ws === "NPV" && cur("i")}
-            testId="cf-rate"
-          />
-        </label>
-        <div className="flex flex-wrap gap-2 @md:justify-end">
-          <button type="button" className={btn.secondary} onClick={loadExample} data-testid="cf-example">
-            Load guidebook example
-          </button>
-          <button type="button" className={btn.secondary} onClick={() => onPressKeys(keysTo(state, ["CF", "2ND", "CE_C"]))} data-testid="cf-clear">
-            Clear <span className="font-normal text-[var(--muted)]">(CF, 2ND CLR WORK)</span>
-          </button>
-        </div>
+      <div className="space-y-1.5">
+        <p className="block-summary" data-testid="cf-summary">
+          {summary}
+        </p>
+        <p className="text-xs text-[var(--muted)]">Values come from the calculator: key them in, or load an example.</p>
       </div>
 
-      <div className="space-y-1.5" role="group" aria-label="Cash flows">
-        <div className={`${ROW_GRID} text-xs font-semibold tracking-wide text-[var(--muted)] uppercase`} aria-hidden="true">
-          <span>Flow</span>
-          <span className="text-right">Amount</span>
-          <span className="text-right">Freq</span>
-          <span className="hidden @md:block" />
-        </div>
-        <div className={`block-row ${ROW_GRID}${flow("cf0") ? " is-current" : ""}`} data-current={flow("cf0") ? "true" : undefined}>
-          <span className="pt-2 text-sm font-semibold">CFo</span>
-          <CommitField
-            label="CFo amount (time 0)"
-            value={cf.cf0}
-            display={num(state, cf.cf0)}
-            onCommit={(x) => edit(`CFo = ${editValueText(x)} (panel)`, (s) => editCf0(s, x))}
-            current={flow("cf0")}
-            testId="cf-cf0"
-          />
-          <span className="pt-2 pr-3 text-right text-sm text-[var(--muted)]">—</span>
-          <span className="hidden @md:block" />
-        </div>
-        {cf.groups.map((g, j) => {
-          const n = pad(j + 1);
-          const c = flow(`c${n}`);
-          const f = flow(`f${n}`);
-          return (
-            <div key={j} className={`block-row ${ROW_GRID}${c || f ? " is-current" : ""}`} data-testid="cf-row" data-current={c || f ? "true" : undefined}>
-              <span className="pt-2 text-sm font-semibold">C{n}</span>
-              <CommitField
-                label={`C${n} amount`}
-                value={g.amount}
-                display={num(state, g.amount)}
-                onCommit={(x) => edit(`C${n} = ${editValueText(x)} (panel)`, (s) => editCfAmount(s, j, x))}
-                current={c}
-                testId={`cf-amount-${j + 1}`}
-              />
-              <CommitField
-                label={`F${n} frequency`}
-                value={g.freq}
-                display={num(state, g.freq)}
-                onCommit={(x) => edit(`F${n} = ${editValueText(x)} (panel)`, (s) => editCfFreq(s, j, x))}
-                blankAs={1}
-                current={f}
-                testId={`cf-freq-${j + 1}`}
-              />
-              <div className="col-span-3 flex justify-end gap-1 @md:col-span-1 @md:pt-0.5">
-                <button type="button" className={btn.icon} aria-label={`Move C${n} up`} disabled={j === 0} onClick={() => editNow(`C${n} moved up (panel)`, (s) => moveCfGroup(s, j, -1))}>
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  className={btn.icon}
-                  aria-label={`Move C${n} down`}
-                  disabled={j === cf.groups.length - 1}
-                  onClick={() => editNow(`C${n} moved down (panel)`, (s) => moveCfGroup(s, j, 1))}
-                >
-                  ↓
-                </button>
-                <button type="button" className={btn.icon} aria-label={`Remove C${n}`} onClick={() => editNow(`C${n} removed (panel)`, (s) => removeCfGroup(s, j))}>
-                  ×
-                </button>
-              </div>
-            </div>
-          );
-        })}
-        <div className="flex flex-wrap items-center gap-3 pt-1">
-          <button type="button" className={btn.secondary} disabled={atMax} onClick={() => editNow(`C${pad(cf.groups.length + 1)} added (panel)`, addCfGroup)} data-testid="cf-add">
-            + Add cash flow
-          </button>
-        </div>
-        {atMax && <p className="text-xs text-[var(--muted)]">The BA II Plus holds at most {MAX_CF_GROUPS} cash-flow groups (C01–C24).</p>}
-        <p className="text-xs text-[var(--muted)]">Frequency is how many consecutive periods the amount repeats (0.5 to 9,999). A blank amount is 0.</p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className={btn.secondary}
+          onClick={loadExample}
+          title="Loads the guidebook's cash flows and I = 20% into the calculator, then presses NPV ↓ CPT and IRR CPT"
+          data-testid="cf-example"
+        >
+          Load guidebook example
+        </button>
+        <button
+          type="button"
+          className={btn.secondary}
+          onClick={() => onPressKeys(keysTo(state, ["CF", "2ND", "CE_C"]))}
+          aria-label="Clear cash flows: press CF, 2ND CLR WORK on the calculator"
+          title="Press CF, 2ND CLR WORK on the calculator"
+          data-testid="cf-clear"
+        >
+          Clear <span className="font-normal text-[var(--muted)]">(CF, 2ND CLR WORK)</span>
+        </button>
       </div>
+
+      <div className="max-h-80 overflow-y-auto">
+        <table className="panel-table" data-testid="cf-table">
+          <caption className="sr-only">Cash flows in the calculator's CF worksheet</caption>
+          <thead>
+            <tr>
+              <th scope="col">Flow</th>
+              <th scope="col" className="text-right">
+                Amount
+              </th>
+              <th scope="col" className="text-right">
+                Freq
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className={flow("cf0") ? "is-current" : undefined} data-current={flow("cf0") ? "true" : undefined}>
+              <th scope="row">CFo</th>
+              <td className={`text-right${flow("cf0") ? " is-cell-current" : ""}`} data-testid="cf-cf0">
+                <FlashValue value={num(state, cf.cf0)} />
+              </td>
+              <td className="text-right text-[var(--muted)]">—</td>
+            </tr>
+            {cf.groups.map((g, j) => {
+              const n = pad(j + 1);
+              const c = flow(`c${n}`);
+              const f = flow(`f${n}`);
+              return (
+                <tr key={j} className={c || f ? "is-current" : undefined} data-testid="cf-row" data-current={c || f ? "true" : undefined}>
+                  <th scope="row">C{n}</th>
+                  <td className={`text-right${c ? " is-cell-current" : ""}`} data-testid={`cf-amount-${j + 1}`}>
+                    <FlashValue value={num(state, g.amount)} />
+                  </td>
+                  <td className={`text-right${f ? " is-cell-current" : ""}`} data-testid={`cf-freq-${j + 1}`}>
+                    <FlashValue value={num(state, g.freq)} />
+                  </td>
+                </tr>
+              );
+            })}
+            {onSlot && (
+              // The LCD is on the empty Cnn / Fnn slot after the last group: a value keyed in here adds a group.
+              <tr className="is-current" data-current="true" data-testid="cf-slot">
+                <th scope="row">C{slot}</th>
+                <td colSpan={2} className="text-right text-xs text-[var(--muted)]">
+                  empty: key in a value and ENTER to add it
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {empty && <HowTo />}
+
+      <Rows>
+        <Row label="I" hint="discount rate, % per period" value={num(state, cf.i)} current={ws === "NPV" && cur("i")} testId="cf-rate" />
+      </Rows>
+      {cf.groups.length >= MAX_CF_GROUPS && <p className="text-xs text-[var(--muted)]">The BA II Plus holds at most {MAX_CF_GROUPS} cash-flow groups (C01–C24).</p>}
 
       <div className="grid gap-3 @md:grid-cols-2" aria-live="polite">
         <Result
@@ -190,7 +165,14 @@ export function CashFlowBlock({ state, active, current, onEdit, onPressKeys }: B
           current={ws === "NPV" && cur("npv")}
           testId="cf-npv"
           button={
-            <button type="button" className={btn.cpt} onClick={computeNpv} data-testid="cf-compute-npv">
+            <button
+              type="button"
+              className={btn.cpt}
+              onClick={computeNpv}
+              aria-label="Compute NPV: press NPV, Down, CPT on the calculator"
+              title="Press NPV ↓ CPT on the calculator"
+              data-testid="cf-compute-npv"
+            >
               Compute NPV
             </button>
           }
@@ -201,7 +183,14 @@ export function CashFlowBlock({ state, active, current, onEdit, onPressKeys }: B
           current={ws === "IRR" && cur("irr")}
           testId="cf-irr"
           button={
-            <button type="button" className={btn.cpt} onClick={computeIrr} data-testid="cf-compute-irr">
+            <button
+              type="button"
+              className={btn.cpt}
+              onClick={computeIrr}
+              aria-label="Compute IRR: press IRR, CPT on the calculator"
+              title="Press IRR CPT on the calculator"
+              data-testid="cf-compute-irr"
+            >
               Compute IRR
             </button>
           }
@@ -212,14 +201,43 @@ export function CashFlowBlock({ state, active, current, onEdit, onPressKeys }: B
       <div>
         <Tabs idBase={idBase} label="Cash-flow views" tabs={SUB_TABS} selected={tab} onSelect={setTab} variant="underline" />
         <div id={tabPanelId(idBase)} role="tabpanel" aria-labelledby={tabId(idBase, tab)} className="pt-3">
-          {tab === "chart" && (
-            <Suspense fallback={<ChartFallback />}>
-              <CashFlowChart chart={chart} rateText={`I = ${formatFull(cf.i)}%`} />
-            </Suspense>
-          )}
+          {tab === "chart" &&
+            (empty ? (
+              <p className="text-sm text-[var(--muted)]">The chart shows the calculator's cash flows once there are some to show.</p>
+            ) : (
+              <Suspense fallback={<ChartFallback />}>
+                <CashFlowChart chart={chart} rateText={`I = ${formatFull(cf.i)}%`} />
+              </Suspense>
+            ))}
           {tab === "formulas" && <CfFormulas />}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** How to key cash flows into the calculator, shown while it holds none (the guidebook's example). */
+function HowTo() {
+  return (
+    <div className="rounded-lg border border-dashed border-[var(--panel-border)] px-3 py-2.5 text-sm" data-testid="cf-how-to">
+      <p className="font-medium">Key cash flows in on the calculator, e.g. the guidebook's example:</p>
+      <ol className="mt-1.5 list-decimal space-y-1.5 pl-5">
+        <li>
+          Open the CF worksheet, empty:
+          <br />
+          <kbd className="block-keys">{CF_HOW_TO.open}</kbd>
+        </li>
+        <li>
+          Key in CFo, then each group's amount (C01…) and, one ↓ later, its frequency (F01…; ↓ alone keeps 1):
+          <br />
+          <kbd className="block-keys">{CF_HOW_TO.flows}</kbd>
+        </li>
+        <li>
+          Compute NPV at I = 20%, then the IRR:
+          <br />
+          <kbd className="block-keys">{CF_HOW_TO.results}</kbd>
+        </li>
+      </ol>
     </div>
   );
 }

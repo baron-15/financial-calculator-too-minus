@@ -36,7 +36,7 @@ export function TvmFormulas({ input, target }: { input: TvmInput; target: TvmVar
       {target === "iy" && <p className="text-[var(--muted)]">With PMT = 0 it solves directly: i = (−FV ÷ PV)^(1/N) − 1. No sign change between PV, PMT and FV gives Error 5.</p>}
       {details && (
         <div className="rounded-lg bg-[var(--tool-subtle)] p-3">
-          <p className="mb-1 font-medium">With your numbers</p>
+          <p className="mb-1 font-medium">With the calculator's current values</p>
           <Tex display tex={String.raw`i = ${details.i.toPrecision(9)}, \qquad G_i = ${details.gi.toPrecision(9)}`} />
           <p className="text-xs text-[var(--muted)] tabular-nums">
             Periodic rate i = {(details.i * 100).toPrecision(8)}% per payment period{input.bgn ? " · payments at the beginning (BGN)" : ""}

@@ -1,6 +1,6 @@
 /**
- * The calculator page's feature block (the former TVM and Cash Flow tools), the header switches and the
- * old tool URLs. The explainer API is always mocked; its specs run on the VITE_AI_EXPLAINER=on server
+ * The calculator page's feature block (the former TVM and Cash Flow tools, now read-only views of the
+ * calculator's registers: values are keyed in on the calculator), the header switches and the old tool URLs. The explainer API is always mocked; its specs run on the VITE_AI_EXPLAINER=on server
  * (tests/e2e/ai.ts).
  */
 import { expect, test, type Page } from "@playwright/test";
@@ -10,13 +10,6 @@ import { freshEmulator, key, lcd, run } from "./calc";
 const block = (page: Page) => page.getByTestId("feature-block");
 const expectFeature = (page: Page, feature: string) => expect(block(page)).toHaveAttribute("data-feature", feature);
 const tab = (page: Page, feature: string) => page.getByTestId(`feature-tab-${feature}`);
-
-/** Type a value into a block field and commit it with Enter. */
-async function enter(page: Page, testId: string, value: string): Promise<void> {
-  const field = page.getByTestId(testId);
-  await field.fill(value);
-  await field.press("Enter");
-}
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/explain", (route) => route.fulfill({ status: 599, body: "explainer is mocked in tests" }));
@@ -119,61 +112,57 @@ test.describe("TVM block", () => {
     await tab(page, "tvm").click();
   });
 
-  test("an edited register is the calculator's own: RCL shows it, and the tape notes it", async ({ page }) => {
-    await enter(page, "tvm-pv", "-5,000");
-    await run(page, "RCL PV");
-    await expect(lcd(page)).toHaveText("PV= -5,000.00");
-    await expect(page.getByTestId("tape")).toContainText("PV = -5,000 (panel)");
-    await enter(page, "tvm-n", "1e3");
-    await run(page, "RCL N");
-    await expect(lcd(page)).toHaveText("N= 1,000.00");
+  test("is read-only: no text fields, only the example list, the chart checkbox and buttons", async ({ page }) => {
+    const panel = page.getByTestId("panel-tvm");
+    await expect(panel.locator('input:not([type="checkbox"]), textarea, [contenteditable="true"], [role="textbox"]')).toHaveCount(0);
+    await expect(panel.locator("select")).toHaveCount(1);
+    await expect(panel.locator('input[type="checkbox"]')).toHaveCount(1);
+    await expect(panel.getByRole("radio")).toHaveCount(0);
+    await expect(page.getByTestId("tvm-summary")).toHaveText("Nothing in the TVM registers yet: key in values, e.g. 360 N, or load an example.");
+    await expect(panel).toContainText("Values come from the calculator: key them in, or load an example.");
   });
 
-  test("editing the register on the LCD updates the LCD", async ({ page }) => {
-    await run(page, "100 PV");
-    await expect(lcd(page)).toHaveText("PV= 100.00 ◄");
-    await enter(page, "tvm-pv", "250");
-    await expect(lcd(page)).toHaveText("PV= 250.00 ◄");
-    await expect(page.getByTestId("tvm-pv")).toHaveClass(/is-current/);
+  test("keying 360 N on the calculator updates the block's N and its summary at once", async ({ page }) => {
+    await run(page, "360 N");
+    await expect(page.getByTestId("tvm-n")).toHaveText("360.00");
+    await expect(page.getByTestId("tvm-summary")).toHaveText(
+      "The calculator holds 360 periods at 0% a year with 1 payment and 1 compounding period a year; PV, PMT and FV are still 0.00.",
+    );
+    // The register on the LCD is highlighted, and the next one takes over.
+    await expect(page.getByTestId("tvm-n").locator("xpath=ancestor::div[contains(@class,'block-row')]")).toHaveAttribute("data-current", "true");
+    await run(page, "120000 PV");
+    await expect(page.getByTestId("tvm-pv")).toHaveText("120,000.00");
+    await expect(page.getByTestId("tvm-summary")).toContainText("The calculator holds a 360-period loan: 120,000.00 received today (PV)");
+    await expect(page.getByTestId("tvm-pv").locator("xpath=ancestor::div[contains(@class,'block-row')]")).toHaveAttribute("data-current", "true");
   });
 
-  test("junk and P/Y = 0 are rejected inline; the register keeps its value", async ({ page }) => {
-    await enter(page, "tvm-pv", "abc");
-    await expect(block(page).getByRole("alert")).toContainText("is not a number");
-    await page.getByTestId("tvm-pv").blur();
-    await expect(page.getByTestId("tvm-pv")).toHaveValue("0.00");
-    await enter(page, "tvm-py", "0");
-    await expect(block(page).getByText("P/Y must be greater than 0 (Error 4 on the calculator).")).toBeVisible();
-    await run(page, "2ND P/Y");
-    await expect(lcd(page)).toHaveText("P/Y= 1.00");
-  });
-
-  test("P/Y sets C/Y, as the P/Y worksheet does", async ({ page }) => {
-    await enter(page, "tvm-py", "12");
-    await expect(page.getByTestId("tvm-cy")).toHaveValue("12.00");
-    await run(page, "2ND P/Y ↓");
-    await expect(lcd(page)).toHaveText("C/Y= 12.00");
+  test("P/Y, C/Y and END / BGN show the calculator's settings", async ({ page }) => {
+    await run(page, "2ND P/Y 12 ENTER");
+    await expect(page.getByTestId("tvm-py")).toHaveText("12.00");
+    await expect(page.getByTestId("tvm-cy")).toHaveText("12.00"); // entering P/Y also sets C/Y
+    await run(page, "2ND QUIT 2ND BGN 2ND SET");
+    await expect(page.getByTestId("tvm-timing")).toHaveText("BGN");
+    await expect(page.getByTestId("ann-bgn")).toHaveAttribute("data-on", "true");
+    await expect(page.getByTestId("panel-tvm").locator('.panel-row[data-current="true"]')).toContainText("Timing");
   });
 
   test("CPT presses the real keys: the LCD shows the result and the tape records it", async ({ page }) => {
-    await enter(page, "tvm-n", "10");
-    await enter(page, "tvm-iy", "5");
-    await enter(page, "tvm-pv", "-100");
+    await run(page, "10 N 5 I/Y 100 +|- PV");
     await run(page, "2ND MEM 2ND"); // leave the calculator in a worksheet with 2ND pending (MEM keeps the block)
-    await page.getByTestId("tvm-cpt-fv").click();
+    await page.getByRole("button", { name: "Press CPT, FV on the calculator" }).click();
     await expect(lcd(page)).toHaveText("FV= 162.89 *");
-    await expect(page.getByTestId("tvm-fv")).toHaveValue("162.89");
+    await expect(page.getByTestId("tvm-fv")).toHaveText("162.89");
     await expect(page.getByTestId("tvm-computed-fv")).toBeVisible();
+    await expect(page.getByTestId("tvm-summary")).toContainText("162.89 received at the end (FV)");
     await expectFeature(page, "tvm");
     // Clean-up first (cancel 2ND, 2ND QUIT), then CPT FV, exactly as keyed on the device.
     await expect(page.getByTestId("tape").locator(".tape-line").last()).toHaveText(/^CPT\s*FV$/);
     await expect(page.getByTestId("tape")).toContainText("QUIT");
+    await expect(page.getByTestId("tape")).not.toContainText("(panel)");
   });
 
   test("a CPT error shows on the LCD and as a message in the block", async ({ page }) => {
-    await enter(page, "tvm-n", "10");
-    await enter(page, "tvm-pv", "100");
-    await enter(page, "tvm-fv", "100");
+    await run(page, "10 N 100 PV 100 FV");
     await page.getByTestId("tvm-cpt-iy").click();
     await expect(lcd(page)).toHaveText("Error 5");
     await expect(page.getByTestId("tvm-error")).toContainText("Error 5");
@@ -188,30 +177,29 @@ test.describe("TVM block", () => {
     await expect(page.getByTestId("tvm-error")).toHaveCount(0);
   });
 
-  test("END / BGN sets the timing and the BGN annunciator", async ({ page }) => {
-    await page.getByTestId("tvm-timing").getByText("BGN").click();
-    await expect(page.getByTestId("ann-bgn")).toHaveAttribute("data-on", "true");
-    // The radio keeps focus, but typing still goes to the calculator.
-    await page.keyboard.type("42");
-    await expect(lcd(page)).toHaveText("42");
-    await run(page, "2ND BGN");
-    await expect(lcd(page)).toHaveText("BGN");
-  });
-
   test("guidebook FV example gives 162.89 on the LCD; Clear TVM clears the registers", async ({ page }) => {
     await page.getByTestId("tvm-example").selectOption("fv");
     await expect(lcd(page)).toHaveText("FV= 162.89 *");
+    await expect(page.getByTestId("tvm-fv")).toHaveText("162.89");
     await expect(page.getByTestId("timeline-chart")).toBeVisible();
-    await page.getByTestId("tvm-clear").click();
+    // Loading an example is one "(panel)" line on the tape; the CPT that follows is the real key.
+    await expect(page.getByTestId("tape").locator(".tape-line").filter({ hasText: "(panel)" })).toHaveCount(1);
+    await expect(page.getByTestId("tape")).toContainText("Guidebook example (panel)");
+    await page.getByRole("button", { name: "Clear TVM: press 2ND CLR TVM on the calculator" }).click();
     await expect(lcd(page)).toHaveText("0.00");
-    await expect(page.getByTestId("tvm-n")).toHaveValue("0.00");
-    await expect(page.getByTestId("tvm-fv")).toHaveValue("0.00");
+    await expect(page.getByTestId("tvm-n")).toHaveText("0.00");
+    await expect(page.getByTestId("tvm-fv")).toHaveText("0.00");
+    await expect(page.getByTestId("tvm-summary")).toContainText("Nothing in the TVM registers yet");
   });
 
-  test("mortgage: PMT −729.13, 360-row schedule, CSV export, formulas", async ({ page }) => {
+  test("mortgage: PMT −729.13, the summary, a 360-row schedule, CSV export, formulas", async ({ page }) => {
     await page.getByTestId("tvm-example").selectOption("mortgage");
     await expect(lcd(page)).toHaveText("PMT= -729.13 *");
-    await expect(page.getByTestId("tvm-pmt")).toHaveValue("-729.13");
+    await expect(page.getByTestId("tvm-pmt")).toHaveText("-729.13");
+    await expect(page.getByTestId("tvm-summary")).toHaveText(
+      "The calculator holds a 360-period loan: 120,000.00 received today (PV), 729.13 paid at the end of each period (PMT, END), " +
+        "0.00 left at the end (FV), at 6.125% a year with 12 payments and 12 compounding periods a year.",
+    );
     await page.getByTestId("tvm-tab-amort").click();
     await expect(page.getByTestId("amort-table").locator("tbody tr")).toHaveCount(360);
     const download = page.waitForEvent("download");
@@ -223,6 +211,18 @@ test.describe("TVM block", () => {
     await page.getByTestId("tvm-tab-formulas").click();
     await expect(page.getByTestId("tvm-formulas")).toContainText("Solving for PMT");
     await expect(page.getByTestId("tvm-formulas").locator(".katex").first()).toBeVisible();
+  });
+
+  test("the timeline and the schedule follow the keys live and say where they come from", async ({ page }) => {
+    await page.getByTestId("tvm-example").selectOption("mortgage");
+    const chart = page.getByTestId("timeline-chart");
+    await expect(chart).toContainText("Drawn from the calculator's current TVM registers.");
+    await expect(chart.getByRole("img")).toHaveAccessibleName("Bar chart of inflows and outflows over 360 periods");
+    await run(page, "120 N");
+    await expect(chart.getByRole("img")).toHaveAccessibleName("Bar chart of inflows and outflows over 120 periods");
+    await page.getByTestId("tvm-tab-amort").click();
+    await expect(page.getByTestId("panel-tvm")).toContainText("Schedule from the calculator's current registers");
+    await expect(page.getByTestId("amort-table").locator("tbody tr")).toHaveCount(120);
   });
 
   test("the AMORT worksheet values show with the schedule", async ({ page }) => {
@@ -239,75 +239,54 @@ test.describe("cash-flow block", () => {
     await tab(page, "cf").click();
   });
 
-  test("enter the guidebook flows in the table, then Compute NPV and IRR on the calculator", async ({ page }) => {
-    await enter(page, "cf-cf0", "-7000");
-    for (const [i, amount, freq] of [[1, "3000", "1"], [2, "4000", "1"], [3, "5000", "4"]] as const) {
-      await page.getByTestId("cf-add").click();
-      await enter(page, `cf-amount-${i}`, amount);
-      await enter(page, `cf-freq-${i}`, freq);
-    }
-    await enter(page, "cf-rate", "20");
+  test("is read-only: no form fields at all; with no flows it shows how to key them in", async ({ page }) => {
+    const panel = page.getByTestId("panel-cf");
+    await expect(panel.locator("input, select, textarea, [contenteditable='true'], [role='textbox']")).toHaveCount(0);
+    await expect(panel.getByRole("button", { name: /^(Add|Remove|Move)/ })).toHaveCount(0);
+    await expect(page.getByTestId("cf-summary")).toHaveText("No cash flows in the calculator yet: press CF and key them in, or load the guidebook example.");
+    await expect(page.getByTestId("cf-how-to")).toContainText("7000 +|- ENTER ↓ 3000 ENTER ↓ ↓ 4000 ENTER ↓ ↓ 5000 ENTER ↓ 4 ENTER");
+    await expect(panel).toContainText("Values come from the calculator: key them in, or load an example.");
+  });
+
+  test("key the guidebook flows in on the calculator, then Compute NPV and IRR", async ({ page }) => {
+    await run(page, "CF 2ND CLR_WORK 7000 +|- ENTER ↓ 3000 ENTER ↓ ↓ 4000 ENTER ↓ ↓ 5000 ENTER ↓ 4 ENTER");
     await expect(page.getByTestId("cf-row")).toHaveCount(3);
-    await page.getByTestId("cf-compute-npv").click();
+    await expect(page.getByTestId("cf-cf0")).toHaveText("-7,000.00");
+    await expect(page.getByTestId("cf-amount-3")).toHaveText("5,000.00");
+    await expect(page.getByTestId("cf-freq-3")).toHaveText("4.00");
+    await expect(page.getByTestId("cf-how-to")).toHaveCount(0);
+    await run(page, "NPV 20 ENTER");
+    await expect(page.getByTestId("cf-rate")).toHaveText("20.00");
+    await expect(page.getByTestId("cf-summary")).toHaveText(
+      "The calculator holds CFo -7,000.00 at time 0, then 3 groups (C01–C03) covering 6 periods; NPV at I = 20% and IRR are not computed for these flows yet.",
+    );
+    await page.getByRole("button", { name: "Compute NPV: press NPV, Down, CPT on the calculator" }).click();
     await expect(lcd(page)).toHaveText("NPV= 7,266.44 *");
     await expect(page.getByTestId("cf-npv-value")).toHaveText("7,266.44");
     await page.getByTestId("cf-compute-irr").click();
     await expect(lcd(page)).toHaveText("IRR= 52.71 *");
     await expect(page.getByTestId("cf-irr-value")).toHaveText("52.71");
-    // The calculator's CF worksheet holds the same flows.
-    await run(page, "CF ↓ ↓ ↓ ↓ ↓");
-    await expect(lcd(page)).toHaveText("C03= 5,000.00 ◄");
-    await run(page, "↓");
-    await expect(lcd(page)).toHaveText("F03= 4.00 ◄");
+    await expect(page.getByTestId("cf-summary")).toContainText("NPV at I = 20% is 7,266.44*, IRR 52.71%.");
+    await expect(page.getByTestId("tape")).not.toContainText("(panel)");
   });
 
-  test("changing a flow invalidates NPV and IRR; changing I invalidates NPV only", async ({ page }) => {
+  test("the guidebook example loads into the calculator; keying a new I or flow invalidates NPV / IRR", async ({ page }) => {
     await page.getByTestId("cf-example").click();
     await expect(lcd(page)).toHaveText("IRR= 52.71 *");
     await expect(page.getByTestId("cf-npv-value")).toHaveText("7,266.44");
-    await enter(page, "cf-rate", "10");
+    await expect(page.getByTestId("tape").locator(".tape-line").filter({ hasText: "(panel)" })).toHaveCount(1);
+    await expect(page.getByTestId("tape")).toContainText("Cash flows = guidebook example (panel)");
+    await run(page, "NPV 10 ENTER");
     await expect(page.getByTestId("cf-npv-value")).toHaveCount(0);
     await expect(page.getByTestId("cf-irr-value")).toHaveText("52.71");
-    await enter(page, "cf-amount-1", "2500");
+    await expect(page.getByTestId("cf-summary")).toContainText("NPV at I = 10% is not computed for these flows yet; IRR is 52.71%.");
+    await run(page, "CF ↓ 2500 ENTER");
+    await expect(page.getByTestId("cf-amount-1")).toHaveText("2,500.00");
     await expect(page.getByTestId("cf-irr-value")).toHaveCount(0);
-    await expect(lcd(page)).toHaveText("IRR= 52.71"); // the LCD loses its "*" too
-  });
-
-  test("rows can be added (up to 24), moved and removed; the LCD follows its group", async ({ page }) => {
-    await page.getByTestId("cf-add").click();
-    await enter(page, "cf-amount-1", "100");
-    await page.getByTestId("cf-add").click();
-    await enter(page, "cf-amount-2", "200");
-    await run(page, "CF ↓ ↓ ↓");
-    await expect(lcd(page)).toHaveText("C02= 200.00 ◄");
-    await page.getByRole("button", { name: "Move C02 up" }).click();
-    await expect(page.getByTestId("cf-amount-1")).toHaveValue("200.00");
-    await expect(page.getByTestId("cf-amount-2")).toHaveValue("100.00");
-    await expect(lcd(page)).toHaveText("C01= 200.00 ◄");
-    await page.getByRole("button", { name: "Remove C01" }).click();
-    await expect(page.getByTestId("cf-row")).toHaveCount(1);
-    await expect(page.getByTestId("cf-amount-1")).toHaveValue("100.00");
-    for (let k = 1; k < 24; k++) await page.getByTestId("cf-add").click();
-    await expect(page.getByTestId("cf-row")).toHaveCount(24);
-    await expect(page.getByTestId("cf-add")).toBeDisabled();
-    await expect(page.getByText("at most 24 cash-flow groups")).toBeVisible();
-  });
-
-  test("frequency must be 0.5 to 9,999; a blank amount is 0", async ({ page }) => {
-    await page.getByTestId("cf-add").click();
-    await enter(page, "cf-freq-1", "0.1");
-    await expect(block(page).getByText("Frequency must be 0.5 to 9,999 (Error 4 on the calculator).")).toBeVisible();
-    await enter(page, "cf-amount-1", "50");
-    await enter(page, "cf-amount-1", "");
-    await expect(page.getByTestId("cf-amount-1")).toHaveValue("0"); // still editing: full precision
-    await page.getByTestId("cf-amount-1").blur();
-    await expect(page.getByTestId("cf-amount-1")).toHaveValue("0.00"); // as the LCD shows it
   });
 
   test("no sign change: Compute IRR shows Error 5 on the LCD and a friendly message", async ({ page }) => {
-    await enter(page, "cf-cf0", "100");
-    await page.getByTestId("cf-add").click();
-    await enter(page, "cf-amount-1", "50");
+    await run(page, "CF 2ND CLR_WORK 100 ENTER ↓ 50 ENTER");
     await page.getByTestId("cf-compute-irr").click();
     await expect(lcd(page)).toHaveText("Error 5");
     await expect(page.getByTestId("cf-irr-error")).toContainText("Error 5");
@@ -315,19 +294,28 @@ test.describe("cash-flow block", () => {
 
   test("the chart follows the flows live; Clear presses CF, 2ND CLR WORK", async ({ page }) => {
     await page.getByTestId("cf-example").click();
-    await expect(page.getByTestId("cf-chart")).toBeVisible();
-    await expect(page.getByTestId("cf-chart").getByText(/Cumulative discounted cash flow/)).toBeVisible();
-    await page.getByTestId("cf-clear").click();
+    const chart = page.getByTestId("cf-chart");
+    await expect(chart).toBeVisible();
+    await expect(chart.getByText(/Cumulative discounted cash flow/)).toBeVisible();
+    await expect(chart).toContainText("Drawn from the calculator's current cash flows and I.");
+    await expect(chart.getByRole("img")).toHaveAccessibleName("Cash flows over 7 periods with cumulative discounted value");
+    await run(page, "CF ↓ ↓ ↓ ↓ ↓ ↓ 6 ENTER"); // F03 = 6
+    await expect(chart.getByRole("img")).toHaveAccessibleName("Cash flows over 9 periods with cumulative discounted value");
+    await page.getByRole("button", { name: "Clear cash flows: press CF, 2ND CLR WORK on the calculator" }).click();
     await expect(lcd(page)).toHaveText("CFo= 0.00");
     await expect(page.getByTestId("cf-row")).toHaveCount(0);
-    await expect(page.getByTestId("cf-rate")).toHaveValue("20.00"); // CLR WORK in CF keeps I
+    await expect(page.getByTestId("cf-rate")).toHaveText("20.00"); // CLR WORK in CF keeps I
+    await expect(page.getByTestId("cf-how-to")).toBeVisible();
   });
 
-  test("highlights the row the LCD is on", async ({ page }) => {
+  test("highlights the row and cell the LCD is on, and the empty slot after the last group", async ({ page }) => {
     await page.getByTestId("cf-example").click();
     await run(page, "CF ↓ ↓ ↓");
-    await expect(page.getByTestId("cf-amount-2")).toHaveClass(/is-current/);
+    await expect(page.getByTestId("cf-amount-2")).toHaveClass(/is-cell-current/);
     await expect(page.getByTestId("cf-row").nth(1)).toHaveAttribute("data-current", "true");
+    await run(page, "↓ ↓ ↓ ↓");
+    await expect(lcd(page)).toHaveText("C04= 0.00");
+    await expect(page.getByTestId("cf-slot")).toContainText("C04");
   });
 });
 
@@ -445,9 +433,12 @@ test.describe("explainer with the feature blocks (VITE_AI_EXPLAINER=on)", () => 
 
 // Keys are pressed by their accessible names; make sure the block's buttons never shadow one.
 test("block buttons do not share a name with a calculator key", async ({ page }) => {
+  const names = ["Compute", "Down", "Up", "Clear entry / clear", "Net present value", "Internal rate of return", "Cash flow worksheet"];
   await tab(page, "cf").click();
-  await page.getByTestId("cf-add").click();
-  for (const name of ["Compute", "Down", "Up", "Clear entry / clear", "Net present value", "Internal rate of return"]) {
+  await page.getByTestId("cf-example").click();
+  for (const name of names) await expect(key(page, name)).toHaveCount(1);
+  await tab(page, "tvm").click();
+  for (const name of [...names, "N, number of periods", "I/Y, interest rate per year", "PV, present value", "PMT, payment", "FV, future value"]) {
     await expect(key(page, name)).toHaveCount(1);
   }
 });

@@ -26,8 +26,8 @@ function board(script: string, feature?: FeatureContext): string {
 
 /** Labels of the rows marked as the variable on display. */
 const currentRows = (html: string) => [...html.matchAll(/data-current="true"[^>]*>(?:<(?!span)[^>]+>)*<span class="font-medium">([^<]*)</g)].map((m) => m[1]!);
-/** Test ids of the block inputs highlighted as the variable on display. */
-const currentInputs = (html: string) => [...html.matchAll(/<input[^>]*data-testid="([^"]+)"[^>]*class="block-input is-current/g)].map((m) => m[1]!);
+/** Test ids of the cash-flow table cells highlighted as the variable on display. */
+const currentCells = (html: string) => [...html.matchAll(/<td class="[^"]*is-cell-current[^"]*" data-testid="([^"]+)"/g)].map((m) => m[1]!);
 const featureOf = (html: string) => /data-testid="feature-block" data-feature="([^"]+)"/.exec(html)?.[1];
 
 describe("explain card on the emulator page", () => {
@@ -127,11 +127,11 @@ describe("panel highlight follows the displayed variable", () => {
     expect(currentRows(board("2ND STAT ↓ ↓"))).toEqual(["x̄"]);
   });
 
-  it("highlights TVM registers in standard mode and P/Y, C/Y in their worksheet", () => {
+  it("highlights TVM registers in standard mode, P/Y and C/Y in their worksheet, and the timing in BGN", () => {
     expect(currentRows(board("5 PV"))).toEqual(["PV"]);
-    expect(currentInputs(board("5 PV"))).toEqual(["tvm-pv"]);
-    expect(currentInputs(board("2ND P/Y"))).toEqual(["tvm-py"]);
-    expect(currentInputs(board("2ND P/Y ↓"))).toEqual(["tvm-cy"]);
+    expect(currentRows(board("2ND P/Y"))).toEqual(["P/Y"]);
+    expect(currentRows(board("2ND P/Y ↓"))).toEqual(["C/Y"]);
+    expect(currentRows(board("2ND BGN"))).toEqual(["Timing"]);
   });
 
   it("marks the register the LCD shows as computed", () => {
@@ -141,11 +141,61 @@ describe("panel highlight follows the displayed variable", () => {
     expect(board("2ND CLR_TVM 10 N 5 I/Y 100 +|- PV CPT FV +")).not.toContain("tvm-computed-");
   });
 
-  it("highlights the cash-flow row the LCD is on", () => {
+  it("highlights the cash-flow row and cell the LCD is on, the empty slot, and I", () => {
     const html = board("CF 100 +|- ENTER ↓ 50 ENTER ↓ 2 ENTER");
-    expect(currentInputs(html)).toEqual(["cf-freq-1"]);
+    expect(currentCells(html)).toEqual(["cf-freq-1"]);
     expect(html).toMatch(/data-testid="cf-row" data-current="true"/);
-    expect(currentInputs(board("NPV"))).toEqual(["cf-rate"]);
+    expect(currentCells(board("CF 100 +|- ENTER"))).toEqual(["cf-cf0"]);
+    // The empty C02 slot after the last group gets a row of its own while the LCD is on it.
+    expect(board("CF 100 +|- ENTER ↓ 50 ENTER ↓ ↓")).toMatch(/data-current="true" data-testid="cf-slot"><th scope="row">C02</);
+    expect(board("CF 100 +|- ENTER ↓ 50 ENTER")).not.toContain("cf-slot");
+    expect(currentRows(board("NPV"))).toEqual(["I"]);
+  });
+
+  it("the highlight moves as keys are pressed (the block re-renders from the registers)", () => {
+    expect(currentCells(board("CF 100 +|- ENTER ↓ 50 ENTER ↓ 2 ENTER ↑"))).toEqual(["cf-amount-1"]);
+    expect(currentRows(board("5 PV 10 N"))).toEqual(["N"]);
+  });
+});
+
+describe("TVM and cash-flow blocks are read-only views of the calculator", () => {
+  const inputs = (html: string) => [...html.matchAll(/<(input|select|textarea)\b[^>]*>/g)].map((m) => (m[1] === "input" ? `input:${/type="([^"]+)"/.exec(m[0])?.[1]}` : m[1]!));
+  const block = (html: string) => html.slice(html.indexOf('data-testid="feature-block"'), html.indexOf('data-testid="panel-memory"'));
+
+  it("the TVM block has only the example select and the chart checkbox; values are plain text", () => {
+    const html = block(board("2ND P/Y 12 ENTER 2ND QUIT 360 N 6.125 I/Y 120000 PV 0 FV CPT PMT"));
+    expect(inputs(html)).toEqual(["select", "input:checkbox"]);
+    expect(html).toMatch(/data-testid="tvm-n"><span class="num[^"]*">360\.00</);
+    expect(html).toMatch(/data-testid="tvm-pmt"><span class="num[^"]*">-729\.13</);
+    expect(html).toMatch(/data-testid="tvm-py"><span class="num[^"]*">12\.00</);
+    expect(html).toMatch(/data-testid="tvm-timing"><span class="num[^"]*">END</);
+    expect(html).toContain("The calculator holds a 360-period loan: 120,000.00 received today (PV), 729.13 paid at the end of each period (PMT, END)");
+    expect(html).toContain("Values come from the calculator: key them in, or load an example.");
+  });
+
+  it("CPT and Clear TVM say they press the calculator's keys", () => {
+    const html = block(board("5 PV"));
+    for (const label of ["N", "I/Y", "PV", "PMT", "FV"]) expect(html).toContain(`aria-label="Press CPT, ${label} on the calculator"`);
+    expect(html).toContain('aria-label="Clear TVM: press 2ND CLR TVM on the calculator"');
+  });
+
+  it("the cash-flow block has no form fields at all; its table and summary come from the worksheet", () => {
+    const html = block(board("CF 2ND CLR_WORK 7000 +|- ENTER ↓ 3000 ENTER ↓ ↓ 4000 ENTER ↓ ↓ 5000 ENTER ↓ 4 ENTER NPV 20 ENTER ↓ CPT IRR CPT"));
+    expect(inputs(html)).toEqual([]);
+    expect(html.match(/data-testid="cf-row"/g)).toHaveLength(3);
+    expect(html).toMatch(/data-testid="cf-freq-3"><span class="num[^"]*">4\.00</);
+    expect(html).toContain("then 3 groups (C01–C03) covering 6 periods; NPV at I = 20% is 7,266.44*, IRR 52.71%.");
+    expect(html).toContain('aria-label="Compute NPV: press NPV, Down, CPT on the calculator"');
+    expect(html).toContain('aria-label="Compute IRR: press IRR, CPT on the calculator"');
+    expect(html).not.toContain("cf-how-to");
+  });
+
+  it("with no cash flows it shows how to key them in", () => {
+    const html = block(board("CF"));
+    expect(html).toContain('data-testid="cf-how-to"');
+    expect(html).toContain("CF 2ND CLR WORK");
+    expect(html).toContain("7000 +|- ENTER ↓ 3000 ENTER ↓ ↓ 4000 ENTER ↓ ↓ 5000 ENTER ↓ 4 ENTER");
+    expect(html).toContain("No cash flows in the calculator yet");
   });
 
   it("highlights the generic worksheet's setting row", () => {

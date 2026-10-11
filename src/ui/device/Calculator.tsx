@@ -25,9 +25,11 @@ export interface CalculatorProps {
   on: boolean;
   onPress: (id: KeyId) => void;
   flash: { id: KeyId; n: number } | null;
+  /** The "Key tips" switch: show a tip on hover, long-press or keyboard focus. */
+  tipsEnabled: boolean;
 }
 
-export function Calculator({ lcd, on, onPress, flash }: CalculatorProps) {
+export function Calculator({ lcd, on, onPress, flash, tipsEnabled }: CalculatorProps) {
   const shellRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<KeyTipPosition | null>(null);
   const touchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -64,12 +66,17 @@ export function Calculator({ lcd, on, onPress, flash }: CalculatorProps) {
 
   useEffect(() => () => clearTimeout(touchTimer.current), []);
 
+  // Turning the switch off closes a tip that is open.
+  useEffect(() => {
+    if (!tipsEnabled) setTip(null);
+  }, [tipsEnabled]);
+
   return (
     <div className="ba-shell" ref={shellRef}>
       <section className="ba-device" aria-label="BA II Plus calculator" data-testid="device">
         <CaseArt />
         <Lcd lcd={lcd} on={on} />
-        <Keypad onPress={onPress} flash={flash} secondActive={lcd.ann.second} onTip={onTip} />
+        <Keypad onPress={onPress} flash={flash} secondActive={lcd.ann.second} onTip={onTip} tipsEnabled={tipsEnabled} />
       </section>
       <KeyTip tip={tip} />
     </div>

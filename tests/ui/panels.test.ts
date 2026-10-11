@@ -7,14 +7,14 @@ import { storeAfter } from "./helpers";
 /** Labels of the rows PanelBoard marks as the variable on display. */
 function currentRows(script: string): string[] {
   const { calc, log } = storeAfter(script);
-  const html = renderToStaticMarkup(createElement(PanelBoard, { state: calc, log, explainKeys: [], onClearTape: () => {} }));
+  const html = renderToStaticMarkup(createElement(PanelBoard, { state: calc, log, explainKeys: [], onClearTape: () => {}, tipsOn: false, onTipsChange: () => {} }));
   return [...html.matchAll(/class="panel-row is-current" data-current="true"><dt[^>]*><span class="font-medium">([^<]*)</g)].map((m) => m[1]!);
 }
 
 describe("explain panel on the emulator page", () => {
   it("renders one card with one heading (no nested explainer heading or section)", () => {
     const { calc, log } = storeAfter("2ND CLR_TVM 10 N 5 I/Y 100 +|- PV CPT FV");
-    const html = renderToStaticMarkup(createElement(PanelBoard, { state: calc, log, explainKeys: [], onClearTape: () => {} }));
+    const html = renderToStaticMarkup(createElement(PanelBoard, { state: calc, log, explainKeys: [], onClearTape: () => {}, tipsOn: false, onTipsChange: () => {} }));
     const start = html.indexOf('data-testid="panel-explain"');
     const card = html.slice(start, html.indexOf("</section>", start));
     expect(card.match(/<h2/g)).toHaveLength(1);

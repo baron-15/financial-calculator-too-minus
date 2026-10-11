@@ -12,6 +12,7 @@ import { CashFlowPanel } from "./CashFlowPanel";
 import { MemoryPanel } from "./MemoryPanel";
 import { PanelCard } from "./PanelCard";
 import { SettingsPanel } from "./SettingsPanel";
+import { KeyTipsSwitch } from "./KeyTipsSwitch";
 import { StatsPanel } from "./StatsPanel";
 import { TapePanel } from "./TapePanel";
 import { TvmPanel } from "./TvmPanel";
@@ -23,6 +24,9 @@ export interface PanelBoardProps {
   /** Keystrokes for the explainer (since the last QUIT / CLR) */
   explainKeys: readonly LogEntry[];
   onClearTape: () => void;
+  /** The "Key tips" switch, shown in the Explain card */
+  tipsOn: boolean;
+  onTipsChange: (on: boolean) => void;
 }
 
 interface PanelDef {
@@ -33,7 +37,7 @@ interface PanelDef {
   node: ReactNode;
 }
 
-export function PanelBoard({ state, log, explainKeys, onClearTape }: PanelBoardProps) {
+export function PanelBoard({ state, log, explainKeys, onClearTape, tipsOn, onTipsChange }: PanelBoardProps) {
   const active = activePanelId(state);
   const current = activeVarId(state);
   const showWorksheet = state.mode.kind === "ws" && !hasDedicatedPanel(state.mode.id);
@@ -46,7 +50,7 @@ export function PanelBoard({ state, log, explainKeys, onClearTape }: PanelBoardP
       tab: "Explain",
       place: "wide",
       node: (
-        <PanelCard id="explain" title="Explain this calculation">
+        <PanelCard id="explain" title="Explain this calculation" actions={<KeyTipsSwitch on={tipsOn} onChange={onTipsChange} />}>
           <ExplainPanel state={state} keystrokes={explainKeys} title={null} />
         </PanelCard>
       ),

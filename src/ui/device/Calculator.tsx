@@ -140,13 +140,13 @@ function CaseArt() {
       <path d={FACEPLATE_PATH} fill="none" stroke="#000" strokeOpacity="0.25" strokeWidth="0.6" />
 
       {/*
-        Our own wordmark, "B Too Minus", set in the three styles of the device's printing: a heavy sans,
+        Our own wordmark, "BA Too Minus", set in the three styles of the device's printing: a heavy sans,
         a bold serif and a light italic sans, on the measured baseline and cap height, centered as one
         group on the faceplate.
       */}
       <text className="ba-print-wordmark" x={DEVICE_W / 2} y={WORDMARK.baseline} textAnchor="middle" fill="#1d1d1d" data-testid="wordmark">
         <tspan fontFamily="'Fira Sans', sans-serif" fontWeight={800} fontSize={WORDMARK.cap / FIRA_CAP}>
-          B
+          BA
         </tspan>
         <tspan dx={WORDMARK.gap} fontFamily="'STIX Two Text', serif" fontWeight={700} fontSize={WORDMARK.cap / STIX_CAP}>
           Too

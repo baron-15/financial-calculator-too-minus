@@ -9,14 +9,14 @@
  * - DEC 9: floating decimal: as many decimals as fit in 10 positions, trailing zeros dropped
  *   (`0.333333333`, `0.666666667`, `1`, `2.5`).
  * - Scientific notation ("mantissa, a blank space, exponent"), used when the integer part needs more than
- *   10 digits, or in floating mode when |x| < 1e-9:
- *   - the exponent is always two digits with its sign: `1.00 12`, `-5.2 -11`, `1 -09`;
- *   - the mantissa shows min(DEC, 6) decimals in fixed mode (`1.23 12` at DEC 2) and up to 6 decimals,
- *     trailing zeros dropped, in floating mode (`1.234567 12`, `-5.2 -11`).
- *   Choice (guidebook silent): 7 mantissa digits + space + 2 exponent digits = the 10 positions.
- * - Fixed mode never switches to scientific notation for small values: 0.001 at DEC 2 shows `0.00`, and a
- *   tiny negative value shows `-0.00` (as the device does, e.g. AMORT `BAL= -0.00`). Negative zero
- *   (`-0`) shows as `0.00`.
+ *   10 digits or when |x| < 1e-9, at any DEC setting. Checked on a real unit (DEC 2 and floating):
+ *   - the mantissa has up to 7 significant digits, trailing zeros dropped but the decimal point kept,
+ *     whatever DEC is: `6.666667 11`, `1. 12`, `3.333333 -13`;
+ *   - the exponent is always two digits with its sign; on the LCD a negative exponent's minus takes the
+ *     blank (`3.333333-13`), see src/ui/device/lcdLayout.ts.
+ * - Small values from 1e-9 up round to the DEC setting: 0.001 at DEC 2 shows `0.00`, and a tiny negative
+ *   value shows `-0.00` (as the device does, e.g. AMORT `BAL= -0.00`). Negative zero (`-0`) shows as
+ *   `0.00`. The 1e-9 switch point at fixed DEC is assumed to match floating mode.
  * - No trailing decimal point when no decimals are shown (`5` at DEC 0 / floating).
  * - |x| > 9.9999999999999E99 (or non-finite) is overflow; the engine raises Error 1 before display, and
  *   formatNumber returns "Error 1" defensively. |x| < 1E-99 underflows to zero.
@@ -30,10 +30,13 @@ export const MAX_MAGNITUDE = 9.9999999999999e99;
 export const MIN_MAGNITUDE = 1e-99;
 /** Display digit positions. */
 export const DISPLAY_DIGITS = 10;
-/** Mantissa decimals in scientific notation (7 mantissa digits + space + 2 exponent digits). */
-const SCI_MAX_DECIMALS = 6;
-/** Floating-decimal mode switches to scientific notation below this magnitude. */
-const FLOAT_SCI_BELOW = 1e-9;
+/**
+ * Mantissa decimals in scientific notation: 7 mantissa digits + blank + 2 exponent digits, whatever the
+ * DEC setting (checked on a real BA II Plus at DEC 2: 2 ÷ 3 × 10^12 shows "6.666667 11").
+ */
+const SCI_DECIMALS = 6;
+/** Below this magnitude the display switches to scientific notation, at any DEC setting (real unit, DEC 2: "3.333333-13"). */
+const SCI_BELOW = 1e-9;
 
 export type FormatSettings = Pick<Settings, "dec" | "separator">;
 
@@ -78,9 +81,14 @@ function zero(dec: number): string {
   return dec === 9 || dec === 0 ? "0" : "0." + "0".repeat(dec);
 }
 
+/**
+ * Scientific notation: the mantissa rounded to 7 significant digits with trailing zeros dropped but the
+ * decimal point kept, a blank, then a two-digit exponent with its sign ("6.666667 11", "1. 12",
+ * "3.333333 -13"; the display puts a negative exponent's minus in the blank). The DEC setting does not
+ * apply (real unit: "1. 12" at DEC 2 and at floating DEC).
+ */
 function sci(d: Dec, neg: boolean, dec: number): string {
-  const float = dec === 9;
-  const md = float ? SCI_MAX_DECIMALS : Math.min(dec, SCI_MAX_DECIMALS);
+  const md = SCI_DECIMALS;
   // Round to md + 1 significant digits.
   const div = pow10(12 - md);
   let q = d.digits / div;
@@ -94,8 +102,7 @@ function sci(d: Dec, neg: boolean, dec: number): string {
     }
   }
   const s = q.toString();
-  let mant = md > 0 ? `${s[0]}.${s.slice(1)}` : s;
-  if (float) mant = mant.replace(/\.?0+$/, "");
+  const mant = `${s[0]}.${s.slice(1).replace(/0+$/, "")}`;
   if (lead < -99) return zero(dec);
   const exp = `${lead < 0 ? "-" : ""}${String(Math.abs(lead)).padStart(2, "0")}`;
   return `${neg ? "-" : ""}${mant} ${exp}`;
@@ -112,7 +119,7 @@ export function formatPlain(x: number, dec: number): string {
   const neg = x < 0;
   const float = dec === 9;
   const d = toDec(a);
-  if (d.lead >= DISPLAY_DIGITS || (float && a < FLOAT_SCI_BELOW)) return sci(d, neg, dec);
+  if (d.lead >= DISPLAY_DIGITS || a < SCI_BELOW) return sci(d, neg, dec);
 
   const intDigits = Math.max(1, d.lead + 1);
   let p = float ? DISPLAY_DIGITS - intDigits : Math.min(dec, DISPLAY_DIGITS - intDigits);

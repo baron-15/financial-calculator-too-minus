@@ -81,7 +81,7 @@ function place(cells: DigitCell[], align: "left" | "right"): DigitCell[] {
 /**
  * A number (or date) in the digits. Its leading minus takes the fixed sign position only when the rest
  * fills all ten digits. In scientific notation the exponent's minus takes the blank before the exponent
- * when the mantissa uses seven digits ("1.234567-12"); the guidebook shows no example of this.
+ * when the mantissa uses seven digits (real unit: "3.333333-13", and "-3.333333-13" with the sign).
  */
 function numberDigits(text: string): { sign: boolean; digits: DigitCell[] } {
   const negative = text.startsWith("-");

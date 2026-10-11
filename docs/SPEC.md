@@ -19,9 +19,10 @@ Page numbers ("p. 35") are the **printed** page numbers of [E]. Every worked exa
 - **DEC** (decimal places) is 0–9, where 9 means floating decimal. The default is 2.
   - With DEC 0 there is no trailing decimal point: `5`, not `5.` *(build decision)*.
   - A fixed DEC (0–8) never switches to scientific notation for small values: `0.001` at DEC 2 shows `0.00`, and a tiny negative value shows `-0.00` *(build decision)*. Floating DEC (9) switches to scientific notation below 1E-9.
-- **Scientific notation** ([E] p. 10): "a base value (or mantissa), followed by a blank space, followed by an exponent". It is used when the integer part needs more than 10 digits (and, in floating DEC, below 1E-9). Format *(build decision; the guidebook shows no example)*:
-  - The exponent always has two digits and its sign: `1.00 12`, `-5.2 -11`, `1 -09`.
-  - The mantissa shows min(DEC, 6) decimals with a fixed DEC (`1.23 12` at DEC 2, `1.71 98` for 69!) and up to 6 decimals, trailing zeros dropped, with floating DEC (`1.234567 12`).
+- **Scientific notation** ([E] p. 10): "a base value (or mantissa), followed by a blank space, followed by an exponent". It is used when the integer part needs more than 10 digits, or below 1E-9, at any DEC setting. Format, checked on a real unit at DEC 2 and floating DEC (the guidebook shows no example):
+  - The mantissa has up to 7 digits whatever DEC is, trailing zeros dropped and the decimal point kept: `6.666667 11`, `1. 12`, `1.711225 98` for 69!.
+  - The exponent always has two digits and its sign: `3.333333 12`, `3.333333 -13`. On the LCD a negative exponent's minus takes the blank (`3.333333-13`), and a negative mantissa then uses the fixed sign position (`-3.333333-13`); see docs/LCD.md.
+  - Below 1E-9 even a fixed DEC switches to scientific notation (`3.333333-13` at DEC 2, not `0.00`). From 1E-9 up, values round to DEC (`0.001` → `0.00`); that the switch point at a fixed DEC is 1E-9 is assumed from floating DEC.
   - The range is ±9.9999999999999E99; beyond that is Error 1.
 - **Internal rounding:** "Except for amortization and depreciation results, the calculator does not round internal values." AMORT and DEPR round to DEC.
 - **Separators:**

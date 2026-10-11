@@ -34,10 +34,14 @@ describe("formatNumber: fixed decimals (DEC 0–8)", () => {
     expect(fmt(5, 0)).toBe("5");
     expect(fmt(1234, 0)).toBe("1,234");
   });
-  it("shows tiny values as zero (with the sign of a negative value), never -0 for zero itself", () => {
+  it("rounds small values to the DEC setting (with the sign of a negative value), never -0 for zero itself", () => {
     expect(fmt(0.001)).toBe("0.00");
-    expect(fmt(-5.2e-11)).toBe("-0.00");
+    expect(fmt(-0.001)).toBe("-0.00");
     expect(fmt(-0)).toBe("0.00");
+  });
+  it("switches values below 1e-9 to scientific notation even at a fixed DEC (real unit, DEC 2: 3.333333-13)", () => {
+    expect(fmt(1 / 3e12)).toBe("3.333333 -13");
+    expect(fmt(-5.2e-11)).toBe("-5.2 -11");
   });
 });
 
@@ -62,24 +66,23 @@ describe("formatNumber: floating decimal (DEC 9)", () => {
 describe("formatNumber: scientific notation", () => {
   it("is used when the integer part needs more than 10 digits", () => {
     expect(fmt(9999999999)).toBe("9,999,999,999");
-    expect(fmt(9999999999.6)).toBe("1.00 10");
-    expect(fmt(12345678901)).toBe("1.23 10");
-    expect(fmt(1e12)).toBe("1.00 12");
-    expect(fmt(-1e15)).toBe("-1.00 15");
+    expect(fmt(9999999999.6)).toBe("1. 10");
+    expect(fmt(12345678901)).toBe("1.234568 10");
+    expect(fmt(1e12)).toBe("1. 12");
+    expect(fmt(-1e15)).toBe("-1. 15");
   });
-  it("shows up to 6 mantissa decimals in floating mode, trailing zeros dropped", () => {
+  it("shows up to 6 mantissa decimals, trailing zeros dropped but the point kept, whatever DEC is (real unit)", () => {
     expect(fmt(1.234567e12, 9)).toBe("1.234567 12");
     expect(fmt(12345678901, 9)).toBe("1.234568 10");
-    expect(fmt(1e12, 9)).toBe("1 12");
-  });
-  it("shows min(DEC, 6) mantissa decimals in fixed mode", () => {
-    expect(fmt(1.234567e12, 4)).toBe("1.2346 12");
+    expect(fmt(1e12, 9)).toBe("1. 12");
+    expect(fmt(2e12 / 3)).toBe("6.666667 11");
+    expect(fmt(1.234567e12, 4)).toBe("1.234567 12");
     expect(fmt(1.234567891e12, 8)).toBe("1.234568 12");
-    expect(fmt(1.5e12, 0)).toBe("2 12");
+    expect(fmt(1.5e12, 0)).toBe("1.5 12");
   });
   it("keeps a two-digit exponent at the top of the range", () => {
-    expect(fmt(9.9e99)).toBe("9.90 99");
-    expect(fmt(9.9999999999e99)).toBe("9.99 99");
+    expect(fmt(9.9e99)).toBe("9.9 99");
+    expect(fmt(9.9999999999e99)).toBe("9.999999 99");
   });
   it("uses the EUR decimal mark in the mantissa", () => {
     expect(fmt(1.5e12, 9, "EUR")).toBe("1,5 12");
@@ -116,7 +119,7 @@ describe("displayedValue (the value ROUND keeps)", () => {
   it("is the rounded displayed form", () => {
     expect(displayedValue(2 / 3, 2)).toBe(0.67);
     expect(displayedValue(2 / 3, 9)).toBe(0.666666667);
-    expect(displayedValue(1.23456e12, 2)).toBe(1.23e12);
+    expect(displayedValue(1.23456789e12, 2)).toBe(1.234568e12);
     expect(displayedValue(-0.001, 2)).toBe(0);
   });
 });
@@ -126,11 +129,15 @@ describe("display through keystrokes", () => {
     expect(display("1 ÷ 3 × 3 =")).toBe("1.00");
     expect(display("1 ÷ 3 × 3 =", FLOAT)).toBe("1");
   });
-  it("shows scientific notation for big and (floating) tiny results", () => {
-    expect(display("1000000 × 1000000 =")).toBe("1.00 12");
+  it("shows scientific notation for big and tiny results (checked on a real unit)", () => {
+    expect(display("1000000000 × 1000 =")).toBe("1. 12");
+    expect(display("1000000000 × 1000 =", FLOAT)).toBe("1. 12");
+    expect(display("2 ÷ 3 × 1000000000 × 1000 =")).toBe("6.666667 11");
+    expect(display("1 ÷ 3 × 1000000000 × 10000 =", FLOAT)).toBe("3.333333 12");
+    expect(display("1 ÷ 3 ÷ 1000000000 ÷ 1000 =", FLOAT)).toBe("3.333333 -13");
+    expect(display("1 ÷ 3 ÷ 1000000000 ÷ 1000 =")).toBe("3.333333 -13");
+    expect(display("1 ÷ 3 ÷ 1000000000 ÷ 1000 = +|-", FLOAT)).toBe("-3.333333 -13");
     expect(display("1234567 × 1000000 =", FLOAT)).toBe("1.234567 12");
-    expect(display("52 +|- ÷ 1000000000 ÷ 1000 =", FLOAT)).toBe("-5.2 -11");
-    expect(display("52 +|- ÷ 1000000000 ÷ 1000 =")).toBe("-0.00");
   });
   it("applies EUR separators to results and typed entries", () => {
     expect(display("1234.5 =", EUR)).toBe("1.234,50");

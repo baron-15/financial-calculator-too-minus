@@ -26,8 +26,13 @@ just above the last two digits the ◁ (entered, over digit 9) and * (computed, 
   the first digit when the number uses all ten digits ("PMT=-1,317.503942").
 - **The digits** show numbers, dates ("12-31-1990"), "Error n" (from the first digit) and the "?" of
   "RST ?" (in the first digit).
-- **Scientific notation** (p. 10): mantissa, blank, two-digit exponent. Where a negative exponent's minus
-  goes is not shown anywhere; we put it in the blank when the mantissa has seven digits.
+- **Scientific notation** (p. 10): mantissa, blank, two-digit exponent. Checked on a real BA II Plus
+  (2026-10-11), at DEC 2 and at floating DEC alike:
+  - the mantissa has up to 7 digits whatever the DEC setting, trailing zeros dropped, decimal point
+    kept: `6.666667 11` (2 ÷ 3 × 10¹²), `1. 12` (10¹²), `3.333333 12`;
+  - a negative exponent's minus takes the blank: `3.333333-13`; a negative mantissa's minus then uses
+    the fixed sign position: `-3.333333-13`;
+  - values below 1E-9 switch to scientific notation at DEC 2 too (`3.333333-13`, not `0.00`).
 
 ## Measurements
 

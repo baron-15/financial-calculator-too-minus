@@ -172,7 +172,7 @@ describe("one-argument functions", () => {
     expect(display("0 1/x")).toBe("Error 1");
   });
   it("eˣ overflow is Error 1", () => {
-    expect(display("230 2ND eˣ")).toBe("7.72 99");
+    expect(display("230 2ND eˣ")).toBe("7.722018 99");
     expect(display("231 2ND eˣ")).toBe("Error 1");
   });
 });
@@ -181,7 +181,7 @@ describe("x!, nCr, nPr", () => {
   it("x! takes integers 0–69", () => {
     expect(display("5 2ND x!")).toBe("120.00");
     expect(display("0 2ND x!")).toBe("1.00");
-    expect(display("69 2ND x!")).toBe("1.71 98");
+    expect(display("69 2ND x!")).toBe("1.711225 98");
   });
   it("x! of a non-integer or outside 0–69 is Error 2", () => {
     expect(display("2.5 2ND x!")).toBe("Error 2");
@@ -301,7 +301,7 @@ describe("errors", () => {
   });
   it("overflow is Error 1", () => {
     expect(display("1000000000 ^ 12 =")).toBe("Error 1");
-    expect(display("10 ^ 99 × 9.9 =")).toBe("9.90 99");
+    expect(display("10 ^ 99 × 9.9 =")).toBe("9.9 99");
     expect(display("10 ^ 99 × 9.9 = × 2 =")).toBe("Error 1");
   });
 });

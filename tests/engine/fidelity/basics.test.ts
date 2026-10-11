@@ -203,7 +203,7 @@ describe("pp. 9–10 — notes on functions", () => {
   });
 
   it("p. 9 — x! needs an integer 0–69", () => {
-    expect(value("69 2ND x!")).toBe("1.71 98");
+    expect(value("69 2ND x!")).toBe("1.711225 98");
     expect(value("70 2ND x!")).toBe("Error 2");
   });
 
@@ -218,7 +218,7 @@ describe("pp. 9–10 — notes on functions", () => {
   });
 
   it("p. 10 — results too large for the display appear as mantissa, blank space, exponent", () => {
-    expect(value("9999999999 × 10 =")).toMatch(/^1\.00 11$/);
+    expect(value("9999999999 × 10 =")).toBe("1. 11");
   });
 });
 

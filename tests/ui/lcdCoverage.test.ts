@@ -1,16 +1,18 @@
 /**
- * Every label and value the engine can put on the LCD must have a renderable path: the whole display
- * (numbers included) is drawn with the SVG segment glyphs in src/ui/device/lcdSegments.ts.
+ * Every screen the engine can show must fit the real glass: labels and setting words in the three 5×7
+ * dot-matrix cells (every character with a glyph), numbers, dates and errors in the ten 7-segment
+ * digits, nothing dropped (src/ui/device/lcdLayout.ts, lcdMatrix.ts).
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { initialState, renderLcd, runScript, type CalcState } from "../../src/engine";
-import { formatNumber } from "../../src/engine/format";
-import { formatWsValue } from "../../src/engine/lcd";
+import { initialState, lcdText, renderLcd, runScript, type CalcState, type Lcd } from "../../src/engine";
 import { STAT_LABELS, STAT_MODELS } from "../../src/engine/worksheets/data";
 import { WORKSHEETS } from "../../src/engine/worksheets/registry";
-import { SEG_CHARS, segPath, segPieces } from "../../src/ui/device/lcdSegments";
+import type { WorksheetId } from "../../src/engine/worksheets/types";
+import { DIGIT_CELLS, layoutLcd, type LcdLayout } from "../../src/ui/device/lcdLayout";
+import { MATRIX_CELLS, MATRIX_CHARS, matrixChars, matrixDots } from "../../src/ui/device/lcdMatrix";
+import { matrixPath } from "../../src/ui/device/lcdDraw";
 
 const ROOT = join(__dirname, "../..");
 
@@ -37,49 +39,38 @@ function sampleStates(): CalcState[] {
   return states;
 }
 
-interface Shown {
-  labels: Set<string>;
-  values: Set<string>;
-}
-
-function engineLcdStrings(): Shown {
-  const labels = new Set<string>();
-  const values = new Set<string>();
+/** The LCD of every sample state, of every worksheet variable in each, and of standard-mode screens. */
+function engineLcds(): Lcd[] {
+  const out: Lcd[] = [];
   for (const s of sampleStates()) {
-    for (const def of Object.values(WORKSHEETS)) {
+    out.push(renderLcd(s));
+    for (const [id, def] of Object.entries(WORKSHEETS)) {
       for (const v of def.vars(s)) {
-        labels.add(v.label);
+        const at: CalcState = { ...s, mode: { kind: "ws", id: id as WorksheetId, varId: v.id }, view: { ...s.view, label: "", assigned: true, text: null, error: null } };
         try {
-          values.add(formatWsValue(s, def.value(s, v.id)));
+          out.push(renderLcd(at));
         } catch {
           /* a value that cannot be shown in this sample state */
         }
       }
     }
-    // The LCD itself, for the DATE samples (weekday) and anything rendered outside a worksheet.
-    const l = renderLcd(s);
-    labels.add(l.label);
-    values.add(l.value);
   }
-  // Standard-mode labels and texts.
-  for (const script of ["5 N", "5 I/Y", "5 PV", "5 PMT", "5 FV", "RCL PV", "2ND RESET", "2ND RESET ENTER", "1 ÷ 0 ="]) {
-    const l = renderLcd(runScript(script));
-    labels.add(l.label);
-    values.add(l.value);
-  }
+  for (const script of ["5 N", "5 I/Y", "5 PV", "5 PMT", "5 FV", "RCL PV", "2ND RESET", "2ND RESET ENTER", "1 ÷ 0 =", "1234.5", "5 +|-"]) out.push(renderLcd(runScript(script)));
   for (let code = 1; code <= 8; code++) {
     const s = initialState();
     s.view = { ...s.view, error: code as NonNullable<CalcState["view"]["error"]> };
-    values.add(renderLcd(s).value);
+    out.push(renderLcd(s));
   }
-  for (const label of Object.values(STAT_LABELS)) labels.add(label);
   // Numbers in every format the display uses.
-  for (const settings of [initialState().settings, { ...initialState().settings, separator: "EUR" as const }, { ...initialState().settings, dec: 9 }]) {
-    for (const x of [0, -1234567.891, 1 / 3, 9.87654321e-15, -1.5e42, 1e99]) values.add(formatNumber(x, settings));
+  for (const patch of [{}, { separator: "EUR" as const }, { dec: 9 }, { dec: 0 }]) {
+    for (const x of [0, -1234567.891, 1 / 3, 9.87654321e-15, -9.87654321e-15, -1.5e42, 1e99, -9999999999, 123456789.5]) {
+      const s = initialState();
+      s.settings = { ...s.settings, ...patch };
+      s.arith = { ...s.arith, x };
+      out.push(renderLcd(s));
+    }
   }
-  labels.delete("");
-  values.delete("");
-  return { labels, values };
+  return out;
 }
 
 /** String literals assigned to `label:` or `text:` in the worksheet sources (catches labels a sample state missed). */
@@ -93,52 +84,73 @@ function sourceLiterals(): string[] {
   return out;
 }
 
-const shown = engineLcdStrings();
+const lcds = engineLcds();
+const labels = new Set([...lcds.map((l) => l.label), ...Object.values(STAT_LABELS)].filter(Boolean));
+const values = new Set(lcds.map((l) => l.value).filter(Boolean));
 
-describe("LCD glyph coverage", () => {
+/** The digit cells as text ("." and "," after their digit), blanks trimmed. */
+const digitText = (l: LcdLayout) => l.digits.map((c) => c.ch + (c.point ? "." : "") + (c.comma ? "," : "")).join("").trim();
+const squash = (t: string) => t.replace(/\s/g, "");
+
+describe("LCD coverage", () => {
   it("collects the engine's labels and text values", () => {
     // Spot checks so a broken sampler cannot pass vacuously.
     for (const l of ["PV", "I/Y", "CFo", "C24", "F24", "X50", "Y50", "x\u0304", "y\u0304", "σx", "ΣX²", "ΣXY", "X'", "%CH", "#PD", "DB", "DBX", "DT1", "RST", "US", "Eur"]) {
-      expect(shown.labels, l).toContain(l);
+      expect(labels, l).toContain(l);
     }
     for (const v of ["ACT", "360", "2/Y", "1/Y", "SL", "SYD", "SLF", "DBF", "LIN", "Ln", "1-V", "Chn", "AOS", "DEG", "RAD", "END", "BGN", "?", "Error 1", "Error 8"]) {
-      expect(shown.values, v).toContain(v);
+      expect(values, v).toContain(v);
     }
-    expect([...shown.values].filter((v) => /(MON|TUE|WED|THU|FRI|SAT|SUN)$/.test(v))).toHaveLength(7);
+    expect([...values].filter((v) => /(MON|TUE|WED|THU|FRI|SAT|SUN)$/.test(v))).toHaveLength(7);
   });
 
   it("sampled every label literal in the worksheet sources", () => {
-    for (const lit of sourceLiterals()) expect(shown.labels.has(lit) || shown.values.has(lit), lit).toBe(true);
+    for (const lit of sourceLiterals()) expect(labels.has(lit) || values.has(lit), lit).toBe(true);
   });
 
-  it("draws every label with segment glyphs", () => {
-    for (const label of shown.labels) {
-      const missing = segPieces(label).filter((p) => p.t === "missing");
-      expect(missing.map((p) => p.ch), `label "${label}"`).toEqual([]);
-      expect(segPath(segPieces(label)).d.length, label).toBeGreaterThan(0);
+  it("fits every label in the three matrix cells, with a glyph for every character", () => {
+    for (const label of labels) {
+      const chars = matrixChars(label);
+      expect(chars.length, label).toBeLessThanOrEqual(MATRIX_CELLS);
+      for (const ch of chars) expect(matrixDots(ch), `"${ch}" in "${label}"`).not.toBeNull();
     }
   });
 
-  it("draws every value (numbers, dates, settings, errors) with segment glyphs", () => {
-    for (const value of shown.values) {
-      const missing = segPieces(value).filter((p) => p.t === "missing");
-      expect(missing.map((p) => p.ch), `value "${value}"`).toEqual([]);
+  it("lays out every screen without dropping a character", () => {
+    for (const lcd of lcds) {
+      const what = lcdText(lcd);
+      const l = layoutLcd(lcd);
+      expect(l.matrix, what).toHaveLength(MATRIX_CELLS);
+      expect(l.digits, what).toHaveLength(DIGIT_CELLS);
+      for (const ch of l.matrix) if (ch) expect(matrixDots(ch), `"${ch}" in ${what}`).not.toBeNull();
+      const day = /^(.+) (MON|TUE|WED|THU|FRI|SAT|SUN)$/.exec(lcd.value);
+      const matrix = l.matrix.join("");
+      const digits = (l.sign ? "-" : "") + digitText(l);
+      if (lcd.text && day) {
+        expect(matrix, what).toBe(day[2]);
+        expect(squash(digits), what).toBe(squash(day[1]!));
+      } else if (lcd.text && lcd.label === "") {
+        // A setting word: in the cells, digits blank.
+        expect(matrix, what).toBe(lcd.value.normalize("NFD"));
+        expect(digits, what).toBe("");
+      } else {
+        expect(matrix, what).toBe(lcd.label.normalize("NFD"));
+        expect(squash(digits), what).toBe(squash(lcd.value));
+      }
     }
   });
 
-  it("gives every defined glyph some ink (except the space and the combining macron)", () => {
-    for (const ch of SEG_CHARS) {
-      if (ch === " " || ch === "\u0304") continue;
-      expect(segPath(segPieces(ch)).d, ch).toMatch(/^M/);
+  it("draws every matrix glyph with dots (except the space)", () => {
+    for (const ch of MATRIX_CHARS) {
+      if (ch === " ") continue;
+      expect(matrixPath(ch, 0), ch).toMatch(/^M/);
     }
-    // The macron adds a bar: x̄ has more ink than x.
-    expect(segPath(segPieces("x\u0304")).d.length).toBeGreaterThan(segPath(segPieces("x")).d.length);
-    expect(segPieces("\u0233")).toHaveLength(1); // precomposed ȳ is decomposed first
+    expect(matrixChars("\u0233")).toEqual(["y\u0304"]); // precomposed ȳ becomes y + macron
   });
 
   it("keeps lowercase distinct from uppercase (STAT n is not TVM N)", () => {
     for (const [lower, upper] of [["n", "N"], ["a", "A"], ["b", "B"], ["r", "R"], ["x", "X"], ["y", "Y"], ["o", "O"], ["h", "H"]]) {
-      expect(segPath(segPieces(lower!)).d, lower).not.toBe(segPath(segPieces(upper!)).d);
+      expect(matrixPath(lower!, 0), lower).not.toBe(matrixPath(upper!, 0));
     }
   });
 });

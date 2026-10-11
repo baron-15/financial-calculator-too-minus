@@ -33,6 +33,12 @@ export interface Lcd {
   label: string;
   /** Right-aligned value text, e.g. "1,234.56", "Error 5", "ACT", "12-31-1990" */
   value: string;
+  /**
+   * The value is worksheet text, not a number: a setting word ("DEG", "LIN", "ACT", "2/Y"), a format
+   * sample ("12-31-1990"), a computed date with its weekday ("9-05-2026 SAT") or the "?" of "RST ?".
+   * The display uses it to place words in the dot-matrix cells and numbers in the digits.
+   */
+  text?: boolean;
   ann: Annunciators;
 }
 
@@ -62,7 +68,7 @@ export function renderLcd(s: CalcState): Lcd {
     rad: s.settings.angle === "RAD",
   };
   if (s.view.error !== null) return { label: "", value: `Error ${s.view.error}`, ann };
-  if (s.mode.kind === "resetConfirm") return { label: "RST", value: "?", ann: { ...ann, enter: true } };
+  if (s.mode.kind === "resetConfirm") return { label: "RST", value: "?", text: true, ann: { ...ann, enter: true } };
 
   const entering = s.arith.entry !== null;
   const entryText = entering ? applySeparators(s.arith.entry!, s.settings.separator) : null;
@@ -80,11 +86,12 @@ export function renderLcd(s: CalcState): Lcd {
     // After arithmetic inside a worksheet (e.g. `5 × 12 =` before ENTER) the LCD shows the working
     // value, not the stored one; the runner sets view.assigned again on ENTER/CPT/navigation.
     const scratch = !entering && !s.view.assigned;
-    const value =
-      s.view.text ?? entryText ?? (scratch ? formatNumber(s.arith.x, s.settings) : formatWsValue(s, def.value(s, v.id)));
+    const stored = s.view.text === null && entryText === null && !scratch ? def.value(s, v.id) : null;
+    const value = s.view.text ?? entryText ?? (stored ? formatWsValue(s, stored) : formatNumber(s.arith.x, s.settings));
     return {
       label: v.label,
       value,
+      ...(s.view.text !== null || stored?.kind === "text" ? { text: true } : {}),
       ann: {
         ...ann,
         assigned: !entering && !scratch && v.label !== "" && v.kind !== "setting",
@@ -98,6 +105,7 @@ export function renderLcd(s: CalcState): Lcd {
   return {
     label: entering ? "" : s.view.label,
     value,
+    ...(s.view.text !== null ? { text: true } : {}),
     ann: {
       ...ann,
       assigned: !entering && s.view.label !== "" && s.view.assigned,

@@ -88,33 +88,19 @@
   color: var(--ink);
 }
 
-.ba-label,
-.ba-eq,
-.ba-value {
+/* The main row (one SVG over the glass): dark ink with the faint shadow real LCD segments cast on the reflector. */
+.ba-row {
   position: absolute;
-  display: block;
-  line-height: 0;
-}
-
-/* Segments: dark ink with the faint shadow real LCD segments cast on the reflector. */
-.ba-seg {
-  display: block;
-  fill: var(--ink);
-  filter: drop-shadow(calc(var(--u) * 0.25) calc(var(--u) * 0.35) 0 rgba(0, 0, 0, 0.12));
-}
-
-.ba-eq .ba-seg {
-  fill: transparent;
-  filter: none;
-}
-
-.ba-eq.is-lit .ba-seg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
   fill: var(--ink);
   filter: drop-shadow(calc(var(--u) * 0.25) calc(var(--u) * 0.35) 0 rgba(0, 0, 0, 0.12));
 }
 
 .ba-lcd.is-off .ba-ann-item,
-.ba-lcd.is-off .ba-seg {
+.ba-lcd.is-off .ba-row {
   visibility: hidden;
 }
 

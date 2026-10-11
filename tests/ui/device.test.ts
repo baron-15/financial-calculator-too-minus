@@ -3,8 +3,10 @@ import { ALL_KEYS, KEY_BY_ID, type KeyId } from "../../src/engine";
 import { COLS, DEVICE_H, DEVICE_W, HIT_PAD, KEY_BOXES, type KeyBox } from "../../src/ui/device/geometry";
 import { secondDescription } from "../../src/ui/device/Keypad";
 import { KEY_TIPS, SECOND_TIPS } from "../../src/ui/device/keyTips";
-import { DIGIT_UNITS, LABEL_GAP_EM, LCD_ROW_UNITS, fitLcd, isNumericValue, labelWidthEm, valueWidthEm } from "../../src/ui/device/lcdGlyphs";
-import { CELL, segWidthEm } from "../../src/ui/device/lcdSegments";
+import { LCD_GLASS, LCD_ROW } from "../../src/ui/device/geometry";
+import { digitX, equalsPath, matrixPath, rowPaths } from "../../src/ui/device/lcdDraw";
+import { layoutLcd, type LcdLayout } from "../../src/ui/device/lcdLayout";
+import { renderLcd, runScript, type Lcd } from "../../src/engine";
 
 const overlap = (a: { x: number; y: number; w: number; h: number }, b: typeof a) =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
@@ -101,30 +103,109 @@ describe("2ND descriptions (announced via aria-describedby instead of a title to
   });
 });
 
-describe("LCD glyphs", () => {
-  it("recognizes numeric values", () => {
-    expect(isNumericValue("-1,234.56")).toBe(true);
-    expect(isNumericValue("1.234567 12")).toBe(true);
-    expect(isNumericValue("12-31-1990")).toBe(true);
-    expect(isNumericValue("Error 5")).toBe(false);
-    expect(isNumericValue("ACT")).toBe(false);
-    expect(isNumericValue("9-05-2026 SAT")).toBe(false);
+describe("LCD layout (docs/LCD.md)", () => {
+  const NO_ANN: Lcd["ann"] = renderLcd(runScript("")).ann;
+  const lcd = (label: string, value: string, extra: Partial<Lcd> & { assigned?: boolean } = {}): Lcd => ({
+    label,
+    value,
+    ...extra,
+    ann: { ...NO_ANN, assigned: extra.assigned ?? label !== "" },
+  });
+  /** Digit cells as text, one character per cell ("_" = blank), with "." and "," after their digit. */
+  const cells = (l: LcdLayout) => l.digits.map((c) => (c.ch === " " ? "_" : c.ch) + (c.point ? "." : "") + (c.comma ? "," : "")).join("");
+
+  it("puts a label in the matrix cells from the left, with the = lit", () => {
+    const l = layoutLcd(lcd("PV", "-1,000.00"));
+    expect(l.matrix).toEqual(["P", "V", ""]);
+    expect(l.equals).toBe(true);
+    expect(layoutLcd(lcd("a", "206,406.62")).matrix).toEqual(["a", "", ""]);
+    expect(layoutLcd(lcd("x̄", "4.8")).matrix).toEqual(["x\u0304", "", ""]);
+    expect(layoutLcd(lcd("ΣX²", "91.00")).matrix).toEqual(["Σ", "X", "²"]);
   });
 
-  it("measures one narrow cell per character; the point and commas take no width", () => {
-    expect(CELL / 1000).toBeCloseTo(0.45);
-    expect(segWidthEm("1,234.00")).toBeCloseTo(6 * 0.45);
-    expect(segWidthEm("AB C")).toBeCloseTo(4 * 0.45);
-    expect(segWidthEm("x\u0304")).toBeCloseTo(0.45);
+  it("right-aligns a number; a short negative number's minus sits before its leading digit", () => {
+    const l = layoutLcd(lcd("PV", "-1,000.00"));
+    expect(l.sign).toBe(false);
+    expect(cells(l)).toBe("___-1,000.00");
+    expect(cells(layoutLcd(lcd("", "0.00")))).toBe("_______0.00");
   });
 
-  it("keeps the measured 31-unit height for a label and ten digits, shrinking only to fit", () => {
-    expect(fitLcd("", "-9,999,999,999")).toBe(DIGIT_UNITS);
-    expect(fitLcd("PV", "1,234,567,890")).toBe(DIGIT_UNITS);
-    expect(fitLcd("BAL", "118,928.63")).toBe(DIGIT_UNITS);
-    const size = fitLcd("ΣXY", "-1,234,567,890");
-    expect(size).toBeLessThan(DIGIT_UNITS);
-    const used = (labelWidthEm("ΣXY") + LABEL_GAP_EM + valueWidthEm("-1,234,567,890")) * size;
-    expect(used).toBeLessThanOrEqual(LCD_ROW_UNITS + 0.01);
+  it("uses the fixed sign position when the number fills all ten digits", () => {
+    const l = layoutLcd(lcd("PMT", "-1,317.503942"));
+    expect(l.sign).toBe(true);
+    expect(cells(l)).toBe("1,317.503942");
+  });
+
+  it("keeps the = off while a value is keyed in, and for unlabelled values", () => {
+    expect(layoutLcd(lcd("PV", "12", { assigned: false })).equals).toBe(false);
+    expect(layoutLcd(lcd("", "5.00", { assigned: true })).equals).toBe(false);
+  });
+
+  it("shows setting words in the matrix cells with the digits blank", () => {
+    for (const word of ["DEG", "LIN", "1-V", "ACT", "360", "2/Y", "BGN", "Chn", "SYD"]) {
+      const l = layoutLcd(lcd("", word, { text: true }));
+      expect(l.matrix.join(""), word).toBe(word);
+      expect(l.equals, word).toBe(false);
+      expect(cells(l), word).toBe("__________");
+    }
+  });
+
+  it("shows a format sample in the digits after its region label", () => {
+    const l = layoutLcd(lcd("US", "12-31-1990", { text: true, assigned: false }));
+    expect(l.matrix).toEqual(["U", "S", ""]);
+    expect(cells(l)).toBe("12-31-1990");
+  });
+
+  it("replaces the label with the weekday after a computed date (THU= 4-22-2010)", () => {
+    const l = layoutLcd(lcd("DT2", "4-22-2010 THU", { text: true }));
+    expect(l.matrix).toEqual(["T", "H", "U"]);
+    expect(l.equals).toBe(true);
+    expect(cells(l)).toBe("_4-22-2010");
+  });
+
+  it("starts Error n and the ? of RST ? at the first digit", () => {
+    const e = layoutLcd(lcd("", "Error 5"));
+    expect(cells(e)).toBe("Error_5___");
+    expect(e.matrix.join("")).toBe("");
+    const r = layoutLcd(renderLcd(runScript("2ND RESET")));
+    expect(r.matrix).toEqual(["R", "S", "T"]);
+    expect(r.equals).toBe(false);
+    expect(cells(r)).toBe("?_________");
+  });
+
+  it("fits scientific notation in ten digits; a negative exponent's minus takes the blank", () => {
+    expect(cells(layoutLcd(lcd("", "1.234567 12")))).toBe("1.234567_12");
+    const neg = layoutLcd(lcd("", "-1.234567 -12"));
+    expect(neg.sign).toBe(true);
+    expect(cells(neg)).toBe("1.234567-12");
+  });
+
+  it("marks the decimal point of an integer being keyed in", () => {
+    expect(cells(layoutLcd(lcd("", "1,234.", { assigned: false })))).toBe("______1,234.");
+  });
+});
+
+describe("LCD drawing", () => {
+  it("draws one dot per lit pixel: P has 15", () => {
+    expect(matrixPath("P", 0).match(/M/g)).toHaveLength(15);
+    expect(matrixPath("", 0)).toBe("");
+    expect(equalsPath().match(/M/g)).toHaveLength(2);
+  });
+
+  it("draws an 8 with seven segments and a comma with a point and a tail", () => {
+    const l = layoutLcd({ label: "", value: "8,888", ann: renderLcd(runScript("")).ann });
+    const d = rowPaths(l).digits;
+    expect(d.match(/M/g)).toHaveLength(4 * 7 + 2);
+  });
+
+  it("keeps the row inside the glass: matrix, =, sign and ten digits in order", () => {
+    const { digit: D, matrix: M, equals: EQ, sign: S } = LCD_ROW;
+    const slant = Math.tan((LCD_ROW.slantDeg * Math.PI) / 180) * (LCD_ROW.h / 2);
+    expect(M.x[0]! - slant).toBeGreaterThan(0);
+    expect(digitX(9) + D.width / 2 + slant).toBeLessThan(LCD_GLASS.w);
+    expect(M.x[2]! + 4 * M.pitchX + M.dotW).toBeLessThan(EQ.x1);
+    expect(EQ.x2).toBeLessThan(S.x1);
+    expect(S.x2).toBeLessThan(digitX(0) - D.width / 2);
+    expect(LCD_ROW.top + LCD_ROW.h + LCD_ROW.point.tail).toBeLessThan(LCD_GLASS.h);
   });
 });

@@ -44,9 +44,35 @@ export const TRIM_PATH = "M0,452 L8,452 C12,474 45,486.5 125,486.5 C205,486.5 23
 /** LCD: white bezel ring and the glass inside it. */
 export const LCD_BEZEL = { x: 19, y: 85, w: 211.5, h: 59.5, r: 6, ring: 2.6 } as const;
 export const LCD_GLASS = { x: 22, y: 88, w: 205.5, h: 54, r: 3.5 } as const;
-/** Inside the glass (relative to the glass box): indicator row and the main digit row. */
+/** Inside the glass (relative to the glass box): the indicator text row. */
 export const LCD_ANN = { top: 4.6, cap: 5.2 } as const;
-export const LCD_MAIN = { top: 16, height: 31, left: 4, right: 4 } as const;
+
+/**
+ * The main row, in glass units, from a close-up photo of the real display (docs/LCD.md; every size
+ * there is a fraction of the digit height H, and the glass is 8.54 H × 2.26 H). Left to right: three
+ * 5×7 dot-matrix cells, the "=" indicator, the fixed minus, ten 7-segment digits. Everything in the
+ * row leans 4° to the right about its middle.
+ */
+const H = 24;
+/** Centre of the first digit at mid-height; the other digits follow at `pitch`. */
+const DIGIT1_X = 0.21 * H + 2.565 * H;
+export const LCD_ROW = {
+  /** digit height and top edge */
+  h: H,
+  top: 0.78 * H,
+  slantDeg: 4,
+  digit: { x1: DIGIT1_X, pitch: 0.589 * H, width: 0.42 * H, stroke: 0.11 * H },
+  /** decimal point: its centre 0.26 H right of the digit centre and 0.11 H above the digit bottom; comma tail 0.12 H below */
+  point: { dx: 0.26 * H, w: 0.075 * H, h: 0.09 * H, lift: 0.11 * H, tail: 0.12 * H },
+  /** matrix cells: left edges, dot pitch and dot size; the glyph top sits 0.04 H below the digit top */
+  matrix: { x: [0.21 * H, DIGIT1_X - 2.008 * H, DIGIT1_X - 1.451 * H], top: 0.82 * H, pitchX: 0.093 * H, pitchY: 0.129 * H, dotW: 0.078 * H, dotH: 0.107 * H },
+  /** "=": two bars, centred 0.06 H above the digit middle */
+  equals: { x1: DIGIT1_X - 0.893 * H, x2: DIGIT1_X - 0.627 * H, bar: 0.093 * H, gap: 0.074 * H, lift: 0.06 * H },
+  /** the fixed minus, at the height of the "=" centre */
+  sign: { x1: DIGIT1_X - 0.553 * H, x2: DIGIT1_X - 0.306 * H, bar: 0.1 * H },
+  /** "◁" (entered) over digit 9 and "*" (computed) over digit 10, their bottoms 0.09 H above the digits */
+  marks: { lift: 0.09 * H, w: 0.21 * H, h: 0.17 * H },
+} as const;
 
 /**
  * Faceplate lettering. The wordmark keeps the device's baseline (57) and cap height (16) and the gap

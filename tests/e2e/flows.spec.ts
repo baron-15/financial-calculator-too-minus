@@ -154,7 +154,9 @@ test.describe("clearing, reset and errors", () => {
   test("a TVM with no solution shows Error 5 (and the LCD draws it)", async ({ page }) => {
     await run(page, "2ND CLR_TVM 10 N 100 PV 100 FV CPT I/Y");
     await expect(lcd(page)).toHaveText("Error 5");
-    await expect(page.getByTestId("lcd-value").locator("svg.ba-seg")).toHaveCount(1);
+    // "Error" starts at the first digit, drawn with seven-segment E, r, r, o, r.
+    await expect(page.getByTestId("lcd-value")).toHaveAttribute("data-digits", "E|r|r|o|r| |5| | | ");
+    await expect(page.getByTestId("lcd-label")).toHaveAttribute("data-matrix", "||");
     await page.keyboard.press("Escape");
     await expect(lcd(page)).toHaveText("0.00");
   });

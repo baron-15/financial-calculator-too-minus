@@ -1,37 +1,40 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { lcdText, type Annunciators, type Lcd as LcdModel } from "../../engine";
-import { LCD_ANN, LCD_BEZEL, LCD_GLASS, LCD_MAIN, cqw, pctX, pctY } from "./geometry";
-import { EQ_GAP_EM, fitLcd, isNumericValue } from "./lcdGlyphs";
-import { SLANT, VIEW_BOTTOM, segPath, segPieces, segWidthEm } from "./lcdSegments";
+import { LCD_ANN, LCD_BEZEL, LCD_GLASS, LCD_ROW, cqw, pctX, pctY } from "./geometry";
+import { computedPath, enteredPath, rowPaths } from "./lcdDraw";
+import { layoutLcd } from "./lcdLayout";
 import { lcdAnnouncement } from "./lcdSpeech";
 
 type IndicatorKey = keyof Annunciators;
 
+/** Digit pitch and the left edge of the first digit, in glass units: the indicator row is laid out on them. */
+const PITCH = LCD_ROW.digit.pitch;
+const DIGIT1_LEFT = LCD_ROW.digit.x1 - LCD_ROW.digit.width / 2;
+
 /**
- * Indicators along the top of the glass, left to right as on the device (guidebook p. 2–3 order;
- * x positions in device units from the glass's left edge, measured on TI's product render).
+ * Indicator words along the top of the glass, left to right as on the device. `at` is the left edge of
+ * each word in digit pitches from the first digit's left edge, from the guidebook's display figure
+ * (p. 2), which matches a photo of the real display (docs/LCD.md).
  */
-const INDICATORS: { key: IndicatorKey; text: string; id: string; x: number }[] = [
-  { key: "second", text: "2nd", id: "second", x: 3.8 },
-  { key: "inv", text: "INV", id: "inv", x: 12.7 },
-  { key: "hyp", text: "HYP", id: "hyp", x: 20 },
-  { key: "compute", text: "COMPUTE", id: "compute", x: 41 },
-  { key: "enter", text: "ENTER", id: "enter", x: 78.8 },
-  { key: "set", text: "SET", id: "set", x: 103 },
-  { key: "up", text: "↑", id: "up", x: 116.6 },
-  { key: "down", text: "↓", id: "down", x: 120.6 },
-  { key: "del", text: "DEL", id: "del", x: 126.3 },
-  { key: "ins", text: "INS", id: "ins", x: 138 },
-  { key: "bgn", text: "BGN", id: "bgn", x: 148.8 },
-  { key: "rad", text: "RAD", id: "rad", x: 161 },
-  { key: "entered", text: "◁", id: "entered", x: 173 },
-  { key: "computed", text: "*", id: "computed", x: 179.5 },
+const INDICATORS: { key: IndicatorKey; text: string; id: string; at: number }[] = [
+  { key: "second", text: "2nd", id: "second", at: -4.04 },
+  { key: "inv", text: "INV", id: "inv", at: -3.02 },
+  { key: "hyp", text: "HYP", id: "hyp", at: -2.04 },
+  { key: "compute", text: "COMPUTE", id: "compute", at: -0.89 },
+  { key: "enter", text: "ENTER", id: "enter", at: 1.73 },
+  { key: "set", text: "SET", id: "set", at: 3.51 },
+  { key: "up", text: "↑", id: "up", at: 4.65 },
+  { key: "down", text: "↓", id: "down", at: 5.03 },
+  { key: "del", text: "DEL", id: "del", at: 5.58 },
+  { key: "ins", text: "INS", id: "ins", at: 6.69 },
+  { key: "bgn", text: "BGN", id: "bgn", at: 7.67 },
+  { key: "rad", text: "RAD", id: "rad", at: 8.91 },
 ];
 
 /** Cap height of the indicator face (Fira Sans Condensed) relative to its font size. */
 const CAP_RATIO = 0.689;
-/** Left margin of the view box, so a leading "." or comma tail is never clipped. */
-const VIEW_LEFT = -70;
+const ENTERED_PATH = enteredPath();
+const COMPUTED_PATH = computedPath();
 
 export interface LcdProps {
   lcd: LcdModel;
@@ -39,35 +42,12 @@ export interface LcdProps {
   on: boolean;
 }
 
-/**
- * Segment text as one SVG, `size` device units tall (the character height). The view box includes
- * the italic overhang on the right and comma tails below the baseline.
- */
-export function SegText({ text, size, className }: { text: string; size: number; className?: string }) {
-  const { d, width } = segPath(segPieces(text));
-  const viewW = width - VIEW_LEFT + SLANT;
-  return (
-    <svg
-      className={`ba-seg${className ? ` ${className}` : ""}`}
-      viewBox={`${VIEW_LEFT} 0 ${viewW} ${VIEW_BOTTOM}`}
-      style={{ width: cqw((viewW / 1000) * size), height: cqw((VIEW_BOTTOM / 1000) * size) }}
-      aria-hidden="true"
-      focusable="false"
-      data-text={text}
-    >
-      <path d={d} />
-    </svg>
-  );
-}
-
 export const Lcd = memo(function Lcd({ lcd, on }: LcdProps) {
   const { label, value, ann } = lcd;
-  const size = fitLcd(label, value);
-  /** Baseline of the main row: character bottoms line up at the row bottom whatever the size. */
-  const rowTop = LCD_MAIN.top + LCD_MAIN.height - size;
+  const layout = useMemo(() => layoutLcd(lcd), [lcd]);
+  const ink = useMemo(() => rowPaths(layout), [layout]);
   const gx = (u: number) => `${(u / LCD_GLASS.w) * 100}%`;
   const gy = (u: number) => `${(u / LCD_GLASS.h) * 100}%`;
-  const eqLeft = LCD_MAIN.left + ((label ? segWidthEm(label) : 0) + EQ_GAP_EM) * size + VIEW_LEFT * (size / 1000);
 
   return (
     <div
@@ -95,7 +75,7 @@ export const Lcd = memo(function Lcd({ lcd, on }: LcdProps) {
             <span
               key={a.id}
               className={`ba-ann-item ba-ann-${a.id}${ann[a.key] ? " is-lit" : ""}`}
-              style={{ left: gx(a.x) }}
+              style={{ left: gx(DIGIT1_LEFT + a.at * PITCH) }}
               data-testid={`ann-${a.id}`}
               data-on={ann[a.key] ? "true" : "false"}
             >
@@ -104,25 +84,25 @@ export const Lcd = memo(function Lcd({ lcd, on }: LcdProps) {
           ))}
         </div>
 
-        <span className={`ba-label${label ? "" : " is-empty"}`} data-testid="lcd-label" data-label={label} style={{ left: gx(LCD_MAIN.left + VIEW_LEFT * (size / 1000)), top: gy(rowTop) }}>
-          {label && <SegText text={label} size={size} />}
-        </span>
-        <span
-          className={`ba-eq${ann.assigned && label ? " is-lit" : ""}`}
-          data-testid="ann-assigned"
-          data-on={ann.assigned ? "true" : "false"}
-          style={{ left: gx(eqLeft), top: gy(rowTop), visibility: label ? undefined : "hidden" }}
-        >
-          <SegText text="=" size={size} />
-        </span>
-        <span
-          className={`ba-value${isNumericValue(value) ? " is-number" : " is-text"}`}
-          data-testid="lcd-value"
-          data-value={value}
-          style={{ right: gx(LCD_MAIN.right), top: gy(rowTop) }}
-        >
-          {value && <SegText text={value} size={size} />}
-        </span>
+        {/* The main row: 3 dot-matrix cells, "=", the fixed minus, 10 seven-segment digits (lcdLayout.ts). */}
+        <svg className="ba-row" viewBox={`0 0 ${LCD_GLASS.w} ${LCD_GLASS.h}`} aria-hidden="true" focusable="false">
+          <g data-testid="lcd-label" data-label={label} data-matrix={layout.matrix.join("|")}>
+            <path d={ink.matrix} />
+          </g>
+          <g data-testid="ann-assigned" data-on={layout.equals ? "true" : "false"}>
+            <path d={ink.equals} />
+          </g>
+          <g data-testid="lcd-value" data-value={value} data-sign={layout.sign ? "true" : "false"} data-digits={layout.digits.map((c) => c.ch + (c.point ? "." : "") + (c.comma ? "," : "")).join("|")}>
+            <path d={ink.sign} />
+            <path d={ink.digits} />
+          </g>
+          <g data-testid="ann-entered" data-on={ann.entered ? "true" : "false"}>
+            {ann.entered && <path d={ENTERED_PATH} />}
+          </g>
+          <g data-testid="ann-computed" data-on={ann.computed ? "true" : "false"}>
+            {ann.computed && <path d={COMPUTED_PATH} />}
+          </g>
+        </svg>
       </div>
       {/* Exact LCD text ("PV= -1,000.00 *"), the same form engine tests use; a test hook, not announced. */}
       <span hidden data-testid="lcd-text">

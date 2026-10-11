@@ -31,9 +31,14 @@ function explainDevApi(env: Record<string, string>): Plugin {
   };
 }
 
-export default defineConfig(({ mode }) => {
+/** GitHub Pages serves this project at https://baron-15.github.io/financial-calculator-too-minus/. */
+const PAGES_BASE = "/financial-calculator-too-minus/";
+
+export default defineConfig(({ command, mode, isPreview }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
+    // Dev server and tests run at "/"; the production build (and `vite preview` of it) uses the Pages subpath.
+    base: command === "build" || isPreview ? PAGES_BASE : "/",
     plugins: [react(), tailwindcss(), explainDevApi(env)],
     test: {
       include: ["tests/**/*.test.ts", "src/**/*.test.ts"],

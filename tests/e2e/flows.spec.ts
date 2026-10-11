@@ -93,7 +93,7 @@ test.describe("cash flows", () => {
   });
 
   test("Load into calculator from /tools/cash-flow fills the CF and NPV worksheets", async ({ page }) => {
-    await page.goto("/tools/cash-flow");
+    await page.goto("/#/tools/cash-flow");
     await page.getByTestId("cf-example").click();
     await page.getByTestId("cf-load-calculator").click();
     await expect(page).toHaveURL(/\/$/);

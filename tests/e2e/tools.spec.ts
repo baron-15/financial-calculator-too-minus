@@ -22,7 +22,7 @@ async function savedWs(page: Page): Promise<Record<string, Record<string, unknow
 
 test.describe("TVM tool", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/tools/tvm");
+    await page.goto("/#/tools/tvm");
   });
 
   test("renders the solver, chart, schedule and formula sections", async ({ page }) => {
@@ -105,7 +105,7 @@ test.describe("TVM tool explainer (VITE_AI_EXPLAINER=on)", () => {
   test.skip(!AI_BASE_URL, AI_SKIP_REASON);
   test.use({ baseURL: AI_BASE_URL });
   test.beforeEach(async ({ page }) => {
-    await page.goto("/tools/tvm");
+    await page.goto("/#/tools/tvm");
   });
 
   test("the button is there but disabled until something is calculated", async ({ page }) => {
@@ -146,7 +146,7 @@ test.describe("TVM tool explainer (VITE_AI_EXPLAINER=on)", () => {
 
 test.describe("Cash Flow tool", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/tools/cash-flow");
+    await page.goto("/#/tools/cash-flow");
   });
 
   test("renders inputs, results and chart sections", async ({ page }) => {

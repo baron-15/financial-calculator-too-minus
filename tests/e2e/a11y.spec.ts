@@ -195,7 +195,7 @@ test.describe("keypad semantics", () => {
 test.describe("tool pages", () => {
   for (const path of ["/tools/tvm", "/tools/cash-flow"]) {
     test(`every form field on ${path} has a label`, async ({ page }) => {
-      await page.goto(path);
+      await page.goto(`/#${path}`);
       await page.getByRole("heading", { level: 1 }).waitFor();
       const unlabeled = await page.locator("input, select, textarea").evaluateAll((els) =>
         els
@@ -217,7 +217,7 @@ test.describe("text contrast (WCAG AA)", () => {
     for (const path of ["/", "/tools/tvm", "/tools/cash-flow"]) {
       test(`${path} in the ${theme} theme`, async ({ page, isMobile }) => {
         await page.emulateMedia({ colorScheme: theme });
-        await page.goto(path);
+        await page.goto(`/#${path}`);
         if (path === "/tools/tvm") await page.selectOption("#tvm-example", "mortgage");
         else if (path === "/tools/cash-flow") await page.getByTestId("cf-example").click();
         else if (!isMobile) {

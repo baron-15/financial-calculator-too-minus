@@ -84,7 +84,6 @@ describe("focus helpers", () => {
   it("treats form fields as typing targets", () => {
     expect(isTypingTarget(el("input"))).toBe(true);
     expect(isTypingTarget(el("TEXTAREA"))).toBe(true);
-    expect(isTypingTarget(el("select"))).toBe(true);
     expect(isTypingTarget(el("div", {}, true))).toBe(true);
     expect(isTypingTarget(el("div", { role: "textbox" }))).toBe(true);
     expect(isTypingTarget(el("button"))).toBe(false);
@@ -98,6 +97,12 @@ describe("focus helpers", () => {
     expect(isTypingTarget(el("input", { type: "radio" }), "5")).toBe(false);
     expect(isTypingTarget(el("input", { type: "radio" }), "ArrowDown")).toBe(true);
     expect(isTypingTarget(el("input", { type: "RADIO" }))).toBe(false); // a lone Shift is still 2ND
+  });
+
+  it("a select keeps the keys that choose or open an option; digits and operators reach the calculator", () => {
+    for (const key of ["ArrowDown", "ArrowUp", "Home", "End", "PageDown", "Enter", " "]) expect(isTypingTarget(el("SELECT"), key)).toBe(true);
+    for (const key of ["5", ".", "+", "Backspace", "Escape", "="]) expect(isTypingTarget(el("select"), key)).toBe(false);
+    expect(isTypingTarget(el("select"))).toBe(false); // a lone Shift is still 2ND
   });
 
   it("lets other controls keep Enter, but not calculator keys", () => {

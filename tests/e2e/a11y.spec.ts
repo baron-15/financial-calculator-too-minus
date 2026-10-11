@@ -232,7 +232,7 @@ test.describe("feature blocks", () => {
 
 test.describe("text contrast (WCAG AA)", () => {
   for (const theme of ["light", "dark"] as const) {
-    for (const view of ["calculator", "tvm", "cf", "more"] as const) {
+    for (const view of ["calculator", "tvm", "cf", "cf-empty", "more"] as const) {
       test(`${view} in the ${theme} theme`, async ({ page, isMobile }) => {
         await page.emulateMedia({ colorScheme: theme });
         await page.goto("/");
@@ -243,9 +243,11 @@ test.describe("text contrast (WCAG AA)", () => {
         } else if (view === "cf") {
           await page.getByTestId("feature-tab-cf").click();
           await page.getByTestId("cf-example").click();
-          await page.getByTestId("cf-add").click();
-          await page.getByTestId("cf-amount-4").fill("abc");
-          await page.getByTestId("cf-amount-4").press("Enter"); // an inline error message
+          await expect(page.getByTestId("cf-row")).toHaveCount(3);
+        } else if (view === "cf-empty") {
+          // The how-to with its keystrokes, and the summary's empty state.
+          await page.getByTestId("feature-tab-cf").click();
+          await expect(page.getByTestId("cf-how-to")).toBeVisible();
         } else if (view === "more") {
           await page.getByTestId("feature-tab-worksheet").click();
           await page.getByTestId("worksheet-picker").getByText("DEPR").click();

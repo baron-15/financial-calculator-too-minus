@@ -1,4 +1,4 @@
-/** Parsing and formatting for the feature blocks' text inputs and results (US separators, like the calculator default). */
+/** Parsing and formatting for the TVM and cash-flow models (examples, CSV) and results (US separators, like the calculator default). */
 
 export type ParsedNumber = { kind: "empty" } | { kind: "invalid" } | { kind: "ok"; value: number };
 

@@ -97,10 +97,13 @@ interface TargetLike {
   closest?(selector: string): unknown;
 }
 
+/** Keys a closed <select> uses itself: choose (arrows, Home, End, PageUp/Down) and open (Enter, Space). */
+const SELECT_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", "Enter", " "]);
+
 /**
- * Keystrokes typed into form fields belong to the field, not the calculator. A checkbox or radio button
- * (the feature blocks' END/BGN, "Show PV and FV", worksheet chips) only keeps the keys it uses itself,
- * the arrows for a radio group, so digits typed after clicking one still reach the calculator.
+ * Keystrokes typed into text fields belong to the field, not the calculator. A checkbox, radio button or
+ * select (the TVM block's "Show PV and FV" and example list, the More block's worksheet chips) only keeps
+ * the keys it uses itself, so digits typed after clicking one still reach the calculator.
  */
 export function isTypingTarget(t: TargetLike | null | undefined, key?: string): boolean {
   if (!t) return false;
@@ -111,7 +114,8 @@ export function isTypingTarget(t: TargetLike | null | undefined, key?: string): 
     if (type === "radio") return key?.startsWith("Arrow") ?? false;
     return true;
   }
-  if (tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (tag === "SELECT") return key !== undefined && SELECT_KEYS.has(key);
+  if (tag === "TEXTAREA") return true;
   if (t.isContentEditable) return true;
   return t.getAttribute?.("role") === "textbox";
 }

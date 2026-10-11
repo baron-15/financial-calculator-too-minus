@@ -82,7 +82,7 @@ export function TimelineChart({ timeline }: { timeline: Timeline }) {
         </ResponsiveContainer>
       </div>
       <figcaption className="text-xs text-[var(--muted)]">
-        Period 0 is today.{" "}
+        Drawn from the calculator's current TVM registers. Period 0 is today.{" "}
         {bucket > 1
           ? `With ${periods.toLocaleString("en-US")} periods, each bar sums ${bucket} consecutive periods${years ? ` (${years === 1 ? "one year" : `${years} years`})` : ""}.`
           : "One bar per period."}
@@ -185,10 +185,10 @@ export function CashFlowChart({ chart, rateText }: { chart: CfChart; rateText: s
         </ResponsiveContainer>
       </div>
       <figcaption className="text-xs text-[var(--muted)]">
-        Period 0 is CF0 (not discounted).{" "}
+        Drawn from the calculator's current cash flows and I. Period 0 is CFo (not discounted).{" "}
         {bucket > 1 ? `With ${(periods + 1).toLocaleString("en-US")} periods, each bar sums ${bucket} consecutive periods.` : ""}
         {fractional ? " Fractional frequencies are rounded up for display only; NPV and IRR use the exact values." : ""}
-        {!withLine ? " Enter a discount rate I to see the cumulative discounted cash flow." : ""}
+        {!withLine ? " Key in a discount rate I (NPV, a rate, ENTER) to see the cumulative discounted cash flow." : ""}
       </figcaption>
       <details className="text-sm">
         <summary className="cursor-pointer text-[var(--muted)]">Show chart data</summary>

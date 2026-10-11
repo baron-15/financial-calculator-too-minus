@@ -1,7 +1,7 @@
 /**
  * TVM model from the former TVM tool page: form state, validation, solving, chart data and exports.
- * The TVM block uses the examples, the timeline, the schedule and its CSV; it edits the calculator's own
- * registers (ui/panels/edits.ts) rather than this form. Pure (no React / DOM).
+ * The TVM block uses the examples, the timeline, the schedule and its CSV; it shows the calculator's own
+ * registers (an example is loaded into them by ui/panels/edits.ts) rather than this form. Pure (no React / DOM).
  */
 import { amortSchedule, type AmortRow } from "../../engine/finance/amort";
 import { periodicRate, solveTvm, type TvmInput, type TvmVar } from "../../engine/finance/tvm";

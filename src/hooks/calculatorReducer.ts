@@ -16,7 +16,7 @@ export interface KeyEntry {
   second: boolean;
 }
 
-/** A value typed into a feature block instead of keyed in, e.g. "PV = -100 (panel)". */
+/** An example loaded from a feature block instead of keyed in, e.g. "Mortgage example (panel)". */
 export interface NoteEntry {
   note: string;
 }
@@ -35,7 +35,7 @@ export interface CalcStore {
 export type CalcAction =
   | { type: "press"; key: KeyId }
   | { type: "resetLog" }
-  /** A block edit: `apply` must be pure (StrictMode may run it twice). `note` goes on the tape. */
+  /** A block edit (loading an example): `apply` must be pure (StrictMode may run it twice). `note` goes on the tape. */
   | { type: "edit"; note: string; apply: (s: CalcState) => CalcState }
   /** Pick a feature block by hand; presses no key. */
   | { type: "selectFeature"; feature: FeatureId; worksheet?: GenericWorksheetId };

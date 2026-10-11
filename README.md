@@ -7,10 +7,11 @@ A faithful web recreation of the Texas Instruments **BA II Plus** financial calc
 Everything lives on one page (`/`): the calculator on the left (it stays in view on wide screens), and beside it, or below it on a phone:
 
 - **Feature block.** One card that shows the feature you are using. It follows the keys: a TVM key (N, I/Y, PV, PMT, FV, or 2ND xP/Y, P/Y, AMORT, BGN, CLR TVM) opens **TVM**; CF, NPV or IRR opens **Cash flow**; 2ND DATA or STAT opens **Statistics**; 2ND BOND opens **Bond**; 2ND DEPR, DATE, Δ%, ICONV, PROFIT or BRKEVN opens **More** (the generic worksheet view, which keeps showing that worksheet after 2ND QUIT). Other keys leave it as it is. The selector in its header switches by hand without pressing a key.
-  - **TVM**: edit N, I/Y, PV, PMT, FV, P/Y, C/Y and END/BGN directly (they are the calculator's registers: RCL shows them), press **CPT** beside a register to compute it on the calculator, load an example, and see the cash-flow timeline, the amortization schedule (with CSV export) and the formulas with your numbers.
-  - **Cash flow**: edit CFo, up to 24 groups (amount and frequency; add, move, remove) and I; **Compute NPV** / **Compute IRR** press NPV ↓ CPT / IRR CPT on the calculator. Also the guidebook example, a chart with the cumulative discounted cash flow, and the formulas.
+  - The TVM and Cash flow blocks are **read-only views of the calculator's registers**: values come only from keys pressed on the calculator (or an example loaded into it), so what you see is always what the calculator computes with. Each block opens with a one-sentence summary of what the calculator holds, and its charts are drawn from those values and update as you press keys.
+  - **TVM**: N, I/Y, PV, PMT, FV, P/Y, C/Y and END/BGN as the LCD shows them, with the register on the LCD highlighted and the one just computed marked `*`. **CPT** beside a register and **Clear TVM** press CPT and that key, or 2ND CLR TVM, on the calculator. Load an example, and see the cash-flow timeline, the amortization schedule (with CSV export) and the formulas with the calculator's numbers.
+  - **Cash flow**: CFo, up to 24 groups (amount and frequency) and I, with the cell on the LCD highlighted, and the keystrokes to enter flows while there are none. **Compute NPV** / **Compute IRR** / **Clear** press NPV ↓ CPT / IRR CPT / CF 2ND CLR WORK on the calculator. Also the guidebook example, a chart with the cumulative discounted cash flow, and the formulas.
 - **Memory** and **Format settings**, always on screen.
-- **Keystroke tape**: every key, with 2ND functions by their gold names; values typed into a block show as notes, e.g. `PV = -100 (panel)`.
+- **Keystroke tape**: every key, with 2ND functions by their gold names; an example loaded from a block shows as a note, e.g. `Mortgage example (panel)`.
 
 The header has two switches beside the theme toggle: **Key tips** (hover or long-press a key to see what it does) and **Calculator only** (hide everything but the calculator). Both are remembered in the browser. The old `/#/tools/tvm` and `/#/tools/cash-flow` links open the calculator with that block.
 
@@ -38,7 +39,7 @@ The header has two switches beside the theme toggle: **Key tips** (hover or long
   - `script.ts` runs keystroke scripts, e.g. `runScript("2ND FV 10 N 5 I/Y 100 +|- PV CPT FV")`.
 - **`src/ui/`, `src/pages/`** hold the React UI: the device skin (`ui/device`), the side column (`ui/panels`) and the page (`pages/Emulator.tsx`).
   - `ui/panels/featureContext.ts` is the pure rule for which feature block a key opens.
-  - `ui/panels/edits.ts` holds the pure block edits (TVM registers, cash flows) with the device's rules; `ui/panels/keysTo.ts` builds the key sequences the block buttons press (first back to standard mode: CE|C, 2ND, 2ND QUIT…).
+  - `ui/panels/summary.ts` writes the blocks' plain-language summaries of the registers; `ui/panels/edits.ts` loads the examples into the registers with the device's rules; `ui/panels/keysTo.ts` builds the key sequences the block buttons press (first back to standard mode: CE|C, 2ND, 2ND QUIT…).
   - `ui/tools/` holds the TVM and cash-flow models, charts, amortization table and formulas used by the blocks.
 - **`api/explain.ts`** is a serverless function that asks Claude for a step-by-step explanation of the last computation. It needs `ANTHROPIC_API_KEY` on the server.
 

@@ -49,17 +49,19 @@ export interface RowProps {
   /** This is the variable shown on the LCD */
   current?: boolean;
   hint?: string;
+  /** Test id for the value. */
+  testId?: string;
 }
 
 /** One label/value line in a definition list. */
-export function Row({ label, value, current = false, hint }: RowProps) {
+export function Row({ label, value, current = false, hint, testId }: RowProps) {
   return (
     <div className={`panel-row${current ? " is-current" : ""}`} data-current={current ? "true" : undefined}>
       <dt className="min-w-0 truncate">
         <span className="font-medium">{label}</span>
         {hint && <span className="ml-1.5 text-xs text-[var(--muted)]">{hint}</span>}
       </dt>
-      <dd>
+      <dd data-testid={testId}>
         <FlashValue value={value} />
       </dd>
     </div>

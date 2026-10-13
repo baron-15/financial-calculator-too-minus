@@ -158,3 +158,22 @@ test("no horizontal overflow at 360px, with every feature block and in Calculato
   await page.getByRole("switch", { name: "Calculator only" }).click();
   expect(await overflow()).toBeLessThanOrEqual(0);
 });
+
+test("on a phone the whole calculator is on screen when the page opens", async ({ page }) => {
+  // A Pixel 7 and an iPhone 14 with their browser bars showing, and a small Android phone.
+  for (const [width, height] of [[412, 747], [390, 664], [360, 640]] as const) {
+    await page.setViewportSize({ width, height });
+    await page.reload();
+    const box = (await page.getByTestId("device").boundingBox())!;
+    expect(box.y + box.height, `${width}×${height}`).toBeLessThanOrEqual(height);
+  }
+  // On a very short screen it stops shrinking at 240 px wide (the page scrolls), and every key stays a
+  // 24 px target at least (WCAG 2.5.8).
+  await page.setViewportSize({ width: 375, height: 553 });
+  await page.reload();
+  expect((await page.getByTestId("device").boundingBox())!.width).toBeCloseTo(240, 0);
+  for (const button of await page.getByRole("group", { name: "Keypad" }).getByRole("button").all()) {
+    const box = (await button.boundingBox())!;
+    expect(Math.min(box.width, box.height), (await button.getAttribute("aria-label")) ?? "").toBeGreaterThanOrEqual(24);
+  }
+});

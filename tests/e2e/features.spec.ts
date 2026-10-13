@@ -345,8 +345,7 @@ test.describe("Calculator only", () => {
     await expectFeature(page, "tvm");
   });
 
-  test("centres the calculator", async ({ page, isMobile }) => {
-    test.skip(isMobile, "the calculator fills the width on a phone anyway");
+  test("centres the calculator", async ({ page }) => {
     await page.getByRole("switch", { name: "Calculator only" }).click();
     const box = (await page.getByTestId("device").boundingBox())!;
     const width = page.viewportSize()!.width;

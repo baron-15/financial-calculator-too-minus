@@ -11,12 +11,13 @@
   width: min(100%, max(300px, min(380px, calc((100dvh - 8rem) / 2.024))));
   margin-inline: auto;
 }
-/* Phones: the whole device on screen as the page opens. 7rem is the two-row header, the page's top padding
- * and as much again below; svh is the viewport with the browser bars showing, so the device keeps its size
- * when they slide away. At least 240 px wide, so keys stay tappable on very short screens. */
+/* Phones: the whole device on screen as the page opens, scrolled just past the header (useScrollPastHeader).
+ * 2rem is the page's top padding and as much again below; svh is the viewport with the browser bars showing,
+ * so the device keeps its size when they slide away. At least 240 px wide, so keys stay tappable on very
+ * short screens. */
 @media (max-width: 640px) {
   .ba-shell {
-    width: min(100%, 420px, max(240px, calc((100svh - 7rem) / 2.024)));
+    width: min(100%, 420px, max(240px, calc((100svh - 2rem) / 2.024)));
   }
 }
 

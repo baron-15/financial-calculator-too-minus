@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useCalcOnly } from "./hooks/useCalcOnly";
 import { useKeyTips } from "./hooks/useKeyTips";
+import { useScrollPastHeader } from "./hooks/useScrollPastHeader";
 import { useTheme } from "./hooks/useTheme";
 import { EmulatorPage, type EmulatorLocationState } from "./pages/Emulator";
 import { HeaderSwitch } from "./ui/HeaderSwitch";
@@ -30,9 +32,11 @@ const legacy = (feature: EmulatorLocationState["feature"]) => <Navigate to="/" r
 export function App() {
   const [tipsOn, setTipsOn] = useKeyTips();
   const [calcOnly, setCalcOnly] = useCalcOnly();
+  const header = useRef<HTMLElement>(null);
+  useScrollPastHeader(header);
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-[var(--panel-border)] px-4 py-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <header ref={header} className="border-b border-[var(--panel-border)] px-4 py-2 flex flex-wrap items-center gap-x-4 gap-y-2">
         {/* Same wordmark as the calculator faceplate: heavy sans "BA", bold serif "Too", light italic "Minus". */}
         <span className="whitespace-nowrap text-[1.15rem] leading-none">
           <span style={{ fontFamily: "'Fira Sans', sans-serif", fontWeight: 800 }}>BA</span>{" "}

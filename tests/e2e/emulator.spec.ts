@@ -159,18 +159,29 @@ test("no horizontal overflow at 360px, with every feature block and in Calculato
   expect(await overflow()).toBeLessThanOrEqual(0);
 });
 
-test("on a phone the whole calculator is on screen when the page opens", async ({ page }) => {
-  // A Pixel 7 and an iPhone 14 with their browser bars showing, and a small Android phone.
-  for (const [width, height] of [[412, 747], [390, 664], [360, 640]] as const) {
+test("on a phone the page opens just past the header, with the whole calculator on screen", async ({ page }) => {
+  const header = page.getByRole("banner");
+  // A Pixel 7 and an iPhone 14 with their browser bars showing, a small Android phone and an iPhone SE.
+  for (const [width, height] of [[412, 747], [390, 664], [360, 640], [375, 553]] as const) {
     await page.setViewportSize({ width, height });
-    await page.reload();
+    await page.goto("/");
     const box = (await page.getByTestId("device").boundingBox())!;
+    expect(box.y, `${width}×${height}`).toBeGreaterThanOrEqual(0);
     expect(box.y + box.height, `${width}×${height}`).toBeLessThanOrEqual(height);
+    await expect(header).not.toBeInViewport();
   }
+  // Scrolling up brings the header's switches back.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(header.getByRole("switch", { name: "Key tips" })).toBeInViewport();
+  // Wide screens open at the top, with the header.
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/");
+  await expect(header).toBeInViewport();
+
   // On a very short screen it stops shrinking at 240 px wide (the page scrolls), and every key stays a
   // 24 px target at least (WCAG 2.5.8).
-  await page.setViewportSize({ width: 375, height: 553 });
-  await page.reload();
+  await page.setViewportSize({ width: 360, height: 480 });
+  await page.goto("/");
   expect((await page.getByTestId("device").boundingBox())!.width).toBeCloseTo(240, 0);
   for (const button of await page.getByRole("group", { name: "Keypad" }).getByRole("button").all()) {
     const box = (await button.boundingBox())!;

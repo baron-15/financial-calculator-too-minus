@@ -13,7 +13,7 @@ import { matrixDots } from "./lcdMatrix";
 
 type Pt = readonly [number, number];
 
-const { h: H, top: TOP, digit: D, point: P, matrix: M, equals: EQ, sign: SIGN, marks: MARK } = LCD_ROW;
+const { h: H, top: TOP, digit: D, point: P, matrix: M, equals: EQ, sign: SIGN, marks: MARK, star: STAR } = LCD_ROW;
 const BOTTOM = TOP + H;
 const MID = TOP + H / 2;
 const TAN = Math.tan((LCD_ROW.slantDeg * Math.PI) / 180);
@@ -180,23 +180,27 @@ export function enteredPath(): string {
   return poly(outer) + poly(inner);
 }
 
-/** "*" (computed): three crossing strokes, over digit 10. */
+/** "*" (computed): a horizontal bar crossed by two at ±60°, over digit 10. */
 export function computedPath(): string {
   const cx = digitX(9);
-  const r = MARK.h / 2;
-  const t = 0.42;
-  return [90, 30, -30]
+  const r = STAR.w / 2;
+  const t = STAR.stroke;
+  const sin60 = Math.sin(Math.PI / 3);
+  // The ±60° bars set the height: their ends reach r·sin 60° plus half a stroke's slant above and below the centre.
+  const cy = TOP - STAR.lift - (r * sin60 + t / 4);
+  return [0, 60, -60]
     .map((deg) => {
       const a = (deg * Math.PI) / 180;
       const dx = Math.cos(a) * r;
       const dy = Math.sin(a) * r;
-      const nx = (-Math.sin(a) * t) / 2;
+      // Half a stroke across the bar (perpendicular to it, so every bar is full width and winds the same way).
+      const nx = (Math.sin(a) * t) / 2;
       const ny = (Math.cos(a) * t) / 2;
       return poly([
-        [cx - dx + nx, MARK_MID + dy + ny],
-        [cx + dx + nx, MARK_MID - dy + ny],
-        [cx + dx - nx, MARK_MID - dy - ny],
-        [cx - dx - nx, MARK_MID + dy - ny],
+        [cx - dx + nx, cy + dy + ny],
+        [cx + dx + nx, cy - dy + ny],
+        [cx + dx - nx, cy - dy - ny],
+        [cx - dx - nx, cy + dy - ny],
       ]);
     })
     .join("");

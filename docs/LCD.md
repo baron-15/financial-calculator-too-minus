@@ -47,7 +47,8 @@ From a close-up photo (Wikimedia Commons, the PMT photo below), in digit heights
 | Cell left edges | −2.565, −2.008, −1.451 from the centre of digit 1 |
 | "=" | −0.893 to −0.627; bars 0.093 thick, 0.074 apart; centre 0.06 above the digit middle |
 | Fixed minus | −0.553 to −0.306; 0.10 thick, at the "=" centre height |
-| ◁ / * | ≈ 0.21 × 0.17, bottom 0.09 above the digit top |
+| ◁ | ≈ 0.21 × 0.17, bottom 0.09 above the digit top |
+| * | a horizontal bar crossed by two at ±60°: 0.2 wide × 0.19 tall, strokes 0.04; bottom 0.07 above the digit top |
 
 The indicator words are placed from the guidebook's display figure (p. 2), in digit pitches from the
 left edge of digit 1; a photo of a standard model agrees within 0.1–0.4 pitch.

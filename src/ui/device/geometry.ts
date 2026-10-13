@@ -70,8 +70,10 @@ export const LCD_ROW = {
   equals: { x1: DIGIT1_X - 0.893 * H, x2: DIGIT1_X - 0.627 * H, bar: 0.093 * H, gap: 0.074 * H, lift: 0.06 * H },
   /** the fixed minus, at the height of the "=" centre */
   sign: { x1: DIGIT1_X - 0.553 * H, x2: DIGIT1_X - 0.306 * H, bar: 0.1 * H },
-  /** "◁" (entered) over digit 9 and "*" (computed) over digit 10, their bottoms 0.09 H above the digits */
+  /** "◁" (entered) over digit 9, its bottom 0.09 H above the digits */
   marks: { lift: 0.09 * H, w: 0.21 * H, h: 0.17 * H },
+  /** "*" (computed) over digit 10: a horizontal bar and two bars at ±60°, 0.2 H across, strokes 0.04 H; its bottom 0.07 H above the digits */
+  star: { w: 0.2 * H, stroke: 0.04 * H, lift: 0.07 * H },
 } as const;
 
 /**
